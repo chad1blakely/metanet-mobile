@@ -3,11 +3,11 @@
     "name": "Metanet",
     "slug": "metanet-mobile",
     "version": "0.2.3",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "metanet",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -42,6 +42,19 @@
             "useModularHeaders": true
           }
         }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "$(PRODUCT_NAME) needs access to your Camera to scan QR codes and barcodes.",
+          "enableCodeScanner": true
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to scan barcodes."
+        }
       ]
     ],
     "experiments": {
@@ -61,7 +74,10 @@
         "android.permission.VIBRATE",
         "android.permission.WAKE_LOCK",
         "android.permission.INTERNET",
-        "android.permission.SYSTEM_ALERT_WINDOW"
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "googleServicesFile": "google-services.json",
       "intentFilters": [
@@ -93,15 +109,53 @@
             "DEFAULT"
           ]
         }
-      ]
+      ],
+      "queries": [
+        {
+          "intent": {
+            "action": "android.intent.action.VIEW",
+            "category": "android.intent.category.BROWSABLE",
+            "data": {
+              "scheme": "https"
+            }
+          }
+        },
+        {
+          "intent": {
+            "action": "android.intent.action.VIEW",
+            "category": "android.intent.category.BROWSABLE",
+            "data": {
+              "scheme": "http"
+            }
+          },
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "uhrp"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
+      "jsEngine": "hermes"
     },
     "ios": {
       "bundleIdentifier": "org.bsvblockchain.metanet",
       "googleServicesFile": "GoogleService-Info.plist",
       "infoPlist": {
-        "NSCameraUsageDescription": "This app needs camera access to scan QR codes.",
+        "NSCameraUsageDescription": "This app needs camera access to scan QR codes and barcodes.",
         "NSPhotoLibraryUsageDescription": "This app needs photo library access to let you select images.",
         "NSMicrophoneUsageDescription": "This app needs microphone access for video recording features.",
+        "NSLocationWhenInUseUsageDescription": "This app needs your location to provide location-based features on websites.",
         "NSFaceIDUsageDescription": "This app uses Face ID/Touch ID to securely authenticate you and protect your wallet.",
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleURLTypes": [
@@ -110,13 +164,15 @@
             "CFBundleURLSchemes": [
               "metanet",
               "http",
-              "https"
+              "https",
+              "uhrp"
             ]
           }
         ],
         "LSApplicationQueriesSchemes": [
           "https",
-          "http"
+          "http",
+          "uhrp"
         ]
       },
       "entitlements": {
@@ -132,6 +188,10 @@
       "iosDisplayInForeground": true,
       "androidMode": "default",
       "androidCollapsedTitle": "#{unread_notifications} new interactions"
+    },
+    "reactNativeConfig": {
+      "enableHermes": true,
+      "enableFabricRenderer": false
     },
     "owner": "bsvb"
   }

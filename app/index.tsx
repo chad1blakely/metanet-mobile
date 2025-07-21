@@ -13,17 +13,29 @@ import { remoteConfig, analytics } from '@/utils/firebase'
 import { useTranslation } from 'react-i18next'
 import { useBrowserMode } from '@/context/BrowserModeContext'
 
+// TODO REMOVE!
+import { getFCMToken } from '@/utils/pushNotificationManager'
+
 export default function LoginScreen() {
   // Get theme colors
   const { colors, isDark } = useTheme()
   const { managers, selectedWabUrl, selectedStorageUrl, selectedMethod, selectedNetwork, finalizeConfig } = useWallet()
   const { getSnap, setItem, getItem } = useLocalStorage()
 
-  const [startButtonText, setStartButtonText] = useState('Get Started')
   const { t } = useTranslation()
+  const [startButtonText, setStartButtonText] = useState(t('Get Started'))
   const { showWeb3Benefits, setWeb2Mode } = useBrowserMode()
   const [loading, setLoading] = React.useState(false)
   const [initializing, setInitializing] = useState(true)
+
+  // TODO REMOVE
+  const [fcmToken, setFcmToken] = useState<string | null>(null)
+  useEffect(() => {
+    ;(async () => {
+      const token = await getFCMToken()
+      setFcmToken(token)
+    })()
+  }, [])
 
   useEffect(() => {
     // Get the button text from Remote Config
@@ -191,8 +203,20 @@ export default function LoginScreen() {
                 )
               }}
             >
-              <Text style={[styles.getStartedButtonText, { color: colors.textPrimary }]}>Continue without login</Text>
+              <Text style={[styles.getStartedButtonText, { color: colors.textPrimary }]}>
+                {t('continue_without_login')}
+              </Text>
             </TouchableOpacity>
+
+            {/** TODO REMOVE */}
+            {fcmToken && (
+              <View style={{ marginTop: 20, padding: 10, backgroundColor: colors.paperBackground, borderRadius: 8 }}>
+                <Text style={{ color: colors.textPrimary, fontSize: 12, textAlign: 'center' }}>FCM Token:</Text>
+                <Text selectable style={{ color: colors.secondary, fontSize: 10, textAlign: 'center' }}>
+                  {fcmToken}
+                </Text>
+              </View>
+            )}
 
             <Text style={[styles.termsText, { color: colors.textSecondary }]}>{t('terms_privacy_agreement')}</Text>
 
