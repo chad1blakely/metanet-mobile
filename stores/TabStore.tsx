@@ -1,6 +1,6 @@
 // stores/TabStore.tsx
 import { createRef } from 'react'
-import { makeAutoObservable } from 'mobx'
+import { makeAutoObservable, runInAction } from 'mobx'
 import { WebView } from 'react-native-webview'
 import { LayoutAnimation } from 'react-native'
 import { Tab } from '@/shared/types/browser'
@@ -12,6 +12,7 @@ export class TabStore {
   tabs: Tab[] = [] // Always initialize as an array
   activeTabId = 1
   showTabsView = false
+  isInitialized = false // Add initialization flag
   private nextId = 1
   private isSwitchingTabs = false
   private tabNavigationHistories: { [tabId: number]: string[] } = {} // Track navigation history per tab
@@ -20,17 +21,25 @@ export class TabStore {
   constructor() {
     console.log('TabStore constructor called')
     makeAutoObservable(this)
-    // Preserve existing tabs during hot reload
+    // Initialization is now handled by the initializeTabs method
+    // to prevent race conditions.
+  }
+
+  async initializeTabs() {
+    if (this.isInitialized) return
+
+    await this.loadTabs()
+
+    // This logic is now safe because loadTabs has completed.
     if (this.tabs.length === 0) {
-      this.loadTabs().catch(console.error)
+      console.log('No tabs found after loading, creating a new initial tab.')
+      this.newTab()
     }
 
-    // Ensure we always have at least one tab after construction
-    setTimeout(() => {
-      if (this.tabs.length === 0) {
-        this.newTab()
-      }
-    }, 0)
+    // Use runInAction to safely update the state after async operations
+    runInAction(() => {
+      this.isInitialized = true
+    })
   }
 
   createTab(url?: string | null): Tab {
@@ -79,16 +88,15 @@ export class TabStore {
 
     // If no tab found but we have tabs, fix the activeTabId to point to the first tab
     if (!tab && this.tabs.length > 0) {
-      this.activeTabId = this.tabs[0].id
+      // Use runInAction for state changes inside computed properties (getters)
+      runInAction(() => {
+        this.activeTabId = this.tabs[0].id
+      })
       return this.tabs[0]
     }
 
-    // If no tabs at all, create one
-    if (!tab && this.tabs.length === 0) {
-      this.newTab()
-      return this.tabs[0] || null
-    }
-
+    // REMOVED: The logic to create a new tab here was causing the race condition.
+    // Initialization is now handled reliably by initializeTabs.
     return tab || null
   }
 
@@ -300,30 +308,41 @@ export class TabStore {
   }
 
   async loadTabs() {
-    const savedTabs = await AsyncStorage.getItem('tabs')
-    if (savedTabs) {
-      const parsedTabs = JSON.parse(savedTabs).map((tab: any) => ({
-        ...tab,
-        url: tab.url || kNEW_TAB_URL, // Ensure URL is never null when loading
-        webviewRef: createRef<WebView>()
-      }))
-      this.tabs = parsedTabs
+    try {
+      const savedTabsJson = await AsyncStorage.getItem('tabs')
+      if (savedTabsJson) {
+        const parsedTabs = JSON.parse(savedTabsJson).map((tab: any) => ({
+          ...tab,
+          url: tab.url || kNEW_TAB_URL, // Ensure URL is never null when loading
+          webviewRef: createRef<WebView>()
+        }))
 
-      // Update nextId to be higher than any existing tab id
-      const maxId = Math.max(...parsedTabs.map((t: Tab) => t.id), 0)
-      this.nextId = maxId + 1
+        runInAction(() => {
+          this.tabs = parsedTabs
+          // Update nextId to be higher than any existing tab id
+          const maxId = Math.max(...parsedTabs.map((t: Tab) => t.id), 0)
+          this.nextId = maxId + 1
 
-      // Ensure activeTabId points to a valid tab
-      if (parsedTabs.length > 0) {
-        const activeTabExists = parsedTabs.some((t: Tab) => t.id === this.activeTabId)
-        if (!activeTabExists) {
-          this.activeTabId = parsedTabs[0].id
-        }
+          // Ensure activeTabId points to a valid tab
+          if (parsedTabs.length > 0) {
+            const activeTabExists = parsedTabs.some((t: Tab) => t.id === this.activeTabId)
+            if (!activeTabExists) {
+              this.activeTabId = parsedTabs[0].id
+            }
+          }
+        })
+      } else {
+        // No saved tabs, initialize as empty. `initializeTabs` will create the first one.
+        runInAction(() => {
+          this.tabs = []
+        })
       }
-    } else {
-      // No saved tabs, create initial tab
-      this.tabs = []
-      this.newTab() // This will create a tab and set it as active
+    } catch (error) {
+      console.error('Failed to load tabs, starting fresh.', error)
+      // In case of parsing error, start with a clean slate.
+      runInAction(() => {
+        this.tabs = []
+      })
     }
   }
 }

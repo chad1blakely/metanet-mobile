@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react'
-import { Stack } from 'expo-router'
+import React, { useEffect } from 'react'
+import { Stack, SplashScreen } from 'expo-router'
+import { observer } from 'mobx-react-lite'
+import { View, ActivityIndicator } from 'react-native'
 import { UserContextProvider, NativeHandlers } from '../context/UserContext'
 import packageJson from '../package.json'
 import { WalletContextProvider } from '@/context/WalletContext'
@@ -19,6 +21,7 @@ import { initializeFirebase } from '@/utils/firebase'
 import { LanguageProvider } from '@/utils/translations'
 import { BrowserModeProvider } from '@/context/BrowserModeContext'
 import Web3BenefitsModalHandler from '@/components/Web3BenefitsModalHandler'
+import tabStore from '@/stores/TabStore'
 import '@/utils/translations'
 
 const nativeHandlers: NativeHandlers = {
@@ -54,24 +57,36 @@ Notifications.setNotificationHandler({
   })
 })
 
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync()
+
 // Deep link handler component
 function DeepLinkHandler() {
   useDeepLinking()
   return null
 }
 
-export default function RootLayout() {
-  const [configLoaded, setConfigLoaded] = useState(false)
+function RootLayout() {
   useEffect(() => {
-    const initialize = async () => {
+    const initializeApp = async () => {
       await initializeFirebase()
-      setConfigLoaded(true)
+      // Initialize the store when the component mounts
+      await tabStore.initializeTabs()
+      // Hide the splash screen once the store is ready
+      SplashScreen.hideAsync()
     }
-    initialize()
+    initializeApp()
   }, [])
 
-  if (!configLoaded) {
-    return null
+  // Show a loading indicator while the store is initializing
+  if (!tabStore.isInitialized) {
+    // You can return a loading spinner or a blank view.
+    // Returning null might cause issues, so a View is safer.
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    )
   }
 
   return (
@@ -98,16 +113,13 @@ export default function RootLayout() {
                       headerShown: false
                     }}
                   >
-                    <Stack.Screen name="index" />
-                    <Stack.Screen name="browser" />
-                    <Stack.Screen
-                      name="config"
-                      options={{
-                        headerShown: false,
-                        animation: 'slide_from_bottom',
-                        presentation: 'modal'
-                      }}
-                    />
+                    <Stack.Screen name="browser" options={{ headerShown: false }} />
+                    <Stack.Screen name="index" options={{ headerShown: false }} />
+                    <Stack.Screen name="auth/otp" options={{ headerShown: false }} />
+                    <Stack.Screen name="settings" options={{ headerShown: false }} />
+                    <Stack.Screen name="identity" options={{ headerShown: false }} />
+                    <Stack.Screen name="security" options={{ headerShown: false }} />
+                    <Stack.Screen name="trust" options={{ headerShown: false }} />
                   </Stack>
                 </ThemeProvider>
               </BrowserModeProvider>
@@ -118,3 +130,6 @@ export default function RootLayout() {
     </LanguageProvider>
   )
 }
+
+// Wrap your layout with observer to react to store changes
+export default observer(RootLayout)
