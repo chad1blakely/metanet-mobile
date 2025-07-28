@@ -74,20 +74,17 @@ export class NotificationBackendService {
   /**
    * Make authenticated API request to backend
    */
-  private async makeRequest<T = any>(
-    endpoint: string, 
-    options: RequestInit = {}
-  ): Promise<BackendResponse<T>> {
+  private async makeRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<BackendResponse<T>> {
     try {
       const url = `${API_BASE_URL}${endpoint}`
-      
+
       const response = await fetch(url, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`,
-          ...options.headers,
-        },
+          Authorization: `Bearer ${API_KEY}`,
+          ...options.headers
+        }
       })
 
       const data = await response.json()
@@ -113,7 +110,7 @@ export class NotificationBackendService {
     // Generate random bytes for keys (simplified for demo)
     const p256dh = this.generateRandomBase64Url(65)
     const auth = this.generateRandomBase64Url(16)
-    
+
     return { p256dh, auth }
   }
 
@@ -129,10 +126,7 @@ export class NotificationBackendService {
   /**
    * Register push subscription with backend (Production Curl-Compatible)
    */
-  async registerPushSubscription(
-    userId: string, 
-    origin: string = 'metanet-mobile'
-  ): Promise<BackendResponse> {
+  async registerPushSubscription(userId: string, origin: string = 'metanet-mobile'): Promise<BackendResponse> {
     try {
       const { status } = await Notifications.requestPermissionsAsync()
       if (status !== 'granted') {
@@ -145,9 +139,9 @@ export class NotificationBackendService {
       }
 
       const keys = this.generateWebPushKeys()
-      
+
       const deviceId = `metanet-mobile-${Platform.OS}-${Date.now()}-${Math.random().toString(36).substring(7)}`
-      
+
       const fcmEndpoint = `https://fcm.googleapis.com/fcm/send/${deviceId}`
 
       const registrationPayload = {
@@ -174,7 +168,7 @@ export class NotificationBackendService {
       const response = await this.makeRequest('/subscriptions/register', {
         method: 'POST',
         headers: {
-          'Origin': origin,
+          Origin: origin,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(registrationPayload)
@@ -188,14 +182,17 @@ export class NotificationBackendService {
         // Store user key for future requests
         this.userKey = response.userKey
         await AsyncStorage.setItem(USER_KEY_STORAGE, this.userKey)
-        
+
         // Store subscription info
-        await AsyncStorage.setItem(SUBSCRIPTIONS_STORAGE, JSON.stringify({
-          userKey: this.userKey,
-          subscription: registrationPayload,
-          origin,
-          registeredAt: Date.now()
-        }))
+        await AsyncStorage.setItem(
+          SUBSCRIPTIONS_STORAGE,
+          JSON.stringify({
+            userKey: this.userKey,
+            subscription: registrationPayload,
+            origin,
+            registeredAt: Date.now()
+          })
+        )
 
         console.log('✅ Push subscription registered successfully:', response.userKey)
       }
@@ -223,7 +220,7 @@ export class NotificationBackendService {
     return await this.makeRequest(`/subscriptions/permissions/${this.userKey}`, {
       method: 'GET',
       headers: {
-        'Origin': origin
+        Origin: origin
       }
     })
   }
@@ -265,7 +262,7 @@ export class NotificationBackendService {
     return await this.makeRequest('/notifications/send', {
       method: 'POST',
       headers: {
-        'Origin': origin,
+        Origin: origin,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
@@ -285,7 +282,7 @@ export class NotificationBackendService {
     const response = await this.makeRequest(`/subscriptions/${this.userKey}`, {
       method: 'DELETE',
       headers: {
-        'Origin': origin
+        Origin: origin
       }
     })
 
@@ -326,9 +323,9 @@ export class NotificationBackendService {
       return { success: response.ok, data }
     } catch (error) {
       console.error('❌ Health check failed:', error)
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Health check failed' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Health check failed'
       }
     }
   }

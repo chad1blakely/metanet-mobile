@@ -229,12 +229,8 @@ export default function LoginScreen() {
           </>
         )}
       </View>
-      
-      <ConfigModal
-        visible={showConfig}
-        onDismiss={handleConfigDismiss}
-        onConfigured={handleConfigured}
-      />
+
+      <ConfigModal visible={showConfig} onDismiss={handleConfigDismiss} onConfigured={handleConfigured} />
     </SafeAreaView>
   )
 }

@@ -63,7 +63,7 @@ const showLocalNotification = async (notification: PendingNotification) => {
       },
       trigger: null // Show immediately
     })
-    
+
     console.log('📱 Local notification scheduled successfully')
   } catch (error) {
     console.error('❌ Error showing local notification:', error)
@@ -75,7 +75,7 @@ const showLocalNotification = async (notification: PendingNotification) => {
  */
 export const initializeFirebaseNotifications = async (): Promise<void> => {
   console.log('🚀 Initializing Firebase notifications with backend integration')
-  
+
   const hasPermission = await requestUserPermission()
   if (!hasPermission) {
     console.warn('⚠️ FCM permissions not granted, notifications will not work')
@@ -93,11 +93,12 @@ export const initializeFirebaseNotifications = async (): Promise<void> => {
   // Handle notification received in foreground
   messagingModular().onMessage(async remoteMessage => {
     console.log('📱 FCM foreground notification received:', remoteMessage)
-    
-    const fcmData = (typeof remoteMessage.data === 'object' && remoteMessage.data !== null) 
-      ? remoteMessage.data as Record<string, any> 
-      : {}
-    
+
+    const fcmData =
+      typeof remoteMessage.data === 'object' && remoteMessage.data !== null
+        ? (remoteMessage.data as Record<string, any>)
+        : {}
+
     const notification: PendingNotification = {
       title: remoteMessage.notification?.title || 'Notification',
       body: remoteMessage.notification?.body || '',
@@ -105,10 +106,10 @@ export const initializeFirebaseNotifications = async (): Promise<void> => {
       origin: fcmData.origin || 'unknown',
       timestamp: Date.now()
     }
-    
+
     // Show local notification
     await showLocalNotification(notification)
-    
+
     // Forward to WebView if callback is set
     if (webViewMessageCallback) {
       webViewMessageCallback(notification)
@@ -119,11 +120,12 @@ export const initializeFirebaseNotifications = async (): Promise<void> => {
   messagingModular().onNotificationOpenedApp(remoteMessage => {
     console.log('📱 Notification opened from background:', remoteMessage)
     handleNotificationNavigation(remoteMessage)
-    
-    const fcmData = (typeof remoteMessage.data === 'object' && remoteMessage.data !== null) 
-      ? remoteMessage.data as Record<string, any> 
-      : {}
-    
+
+    const fcmData =
+      typeof remoteMessage.data === 'object' && remoteMessage.data !== null
+        ? (remoteMessage.data as Record<string, any>)
+        : {}
+
     const notification: PendingNotification = {
       title: remoteMessage.notification?.title || 'Notification',
       body: remoteMessage.notification?.body || '',
@@ -131,7 +133,7 @@ export const initializeFirebaseNotifications = async (): Promise<void> => {
       origin: fcmData.origin || 'unknown',
       timestamp: Date.now()
     }
-    
+
     // Forward to WebView if callback is set
     if (webViewMessageCallback) {
       webViewMessageCallback(notification)
@@ -143,11 +145,12 @@ export const initializeFirebaseNotifications = async (): Promise<void> => {
   if (initialMessage) {
     console.log('📱 App opened from quit via notification:', initialMessage)
     handleNotificationNavigation(initialMessage)
-    
-    const fcmData = (typeof initialMessage.data === 'object' && initialMessage.data !== null) 
-      ? initialMessage.data as Record<string, any> 
-      : {}
-    
+
+    const fcmData =
+      typeof initialMessage.data === 'object' && initialMessage.data !== null
+        ? (initialMessage.data as Record<string, any>)
+        : {}
+
     const notification: PendingNotification = {
       title: initialMessage.notification?.title || 'Notification',
       body: initialMessage.notification?.body || '',
@@ -155,7 +158,7 @@ export const initializeFirebaseNotifications = async (): Promise<void> => {
       origin: fcmData.origin || 'unknown',
       timestamp: Date.now()
     }
-    
+
     // Forward to WebView if callback is set
     if (webViewMessageCallback) {
       webViewMessageCallback(notification)

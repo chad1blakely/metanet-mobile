@@ -214,28 +214,25 @@ function Browser() {
   const activeTab = tabStore.activeTab // Should never be null due to TabStore guarantees
 
   /* ----------------------------- push notifications ------------------------- */
-  const { 
-    requestPermission,
-    showLocalNotification,
-    pendingNotifications
-  } = usePushNotifications()
+  const { requestPermission, showLocalNotification, pendingNotifications } = usePushNotifications()
 
   // WebView ref for notification forwarding
   const webViewRef = useRef<any>(null)
 
   /* ------------------------- WebView-Native Bridge ------------------------ */
-  
+
   // Forward notifications from native FCM to WebView
-  const forwardNotificationToWebView = useCallback((notification: PendingNotification) => {
-    if (webViewRef.current && activeTab && activeTab.url) {
-      const domain = domainForUrl(activeTab.url)
-      
-      // Only forward if notification is for the current domain
-      if (domain && notification.origin === domain) {
-        console.log('🌉 Forwarding FCM notification to WebView:', notification)
-        
-        // Inject JavaScript to trigger push event in WebView
-        const jsCode = `
+  const forwardNotificationToWebView = useCallback(
+    (notification: PendingNotification) => {
+      if (webViewRef.current && activeTab && activeTab.url) {
+        const domain = domainForUrl(activeTab.url)
+
+        // Only forward if notification is for the current domain
+        if (domain && notification.origin === domain) {
+          console.log('🌉 Forwarding FCM notification to WebView:', notification)
+
+          // Inject JavaScript to trigger push event in WebView
+          const jsCode = `
           (function() {
             try {
               if (window.navigator && window.navigator.serviceWorker) {
@@ -261,23 +258,25 @@ function Browser() {
               console.error('❌ Error forwarding push notification:', error);
             }
           })()
-        `;
-        
-        webViewRef.current.injectJavaScript(jsCode);
+        `
+
+          webViewRef.current.injectJavaScript(jsCode)
+        }
       }
-    }
-  }, [activeTab?.url])
+    },
+    [activeTab?.url]
+  )
 
   // Initialize notification system and set up bridge
   useEffect(() => {
     console.log('🚀 Initializing WebView-Native notification bridge')
-    
+
     // Initialize Firebase notifications
     initializeFirebaseNotifications().catch(console.error)
-    
+
     // Set callback for FCM notifications to forward to WebView
     setWebViewMessageCallback(forwardNotificationToWebView)
-    
+
     return () => {
       // Clean up callback on unmount
       setWebViewMessageCallback(() => {})
@@ -1433,13 +1432,13 @@ function Browser() {
       let msg
       try {
         msg = JSON.parse(event.nativeEvent.data)
-        
+
         // Handle console log messages from injected JavaScript
         if (msg.type === 'console_log') {
           console.log(`[WebView Console] ${msg.message}`)
           return
         }
-        
+
         console.log(`[WebView Message] Received message of type: ${msg?.type}`, JSON.stringify(msg))
       } catch (error) {
         console.error('Failed to parse WebView message:', error)
@@ -1935,9 +1934,9 @@ function Browser() {
 
           // Create push subscription for this domain using backend
           const result = await requestPermission(domain)
-          
+
           let subscription = null
-          
+
           console.log('[WebView] ✅ Push permission granted, userKey:', result.userKey, result.granted)
 
           if (result.granted && result.userKey) {
@@ -1946,7 +1945,7 @@ function Browser() {
               endpoint: `https://fcm.googleapis.com/fcm/send/${result.userKey}`,
               keys: {
                 p256dh: btoa(`backend-p256dh-${result.userKey}`).substring(0, 87), // Proper base64 p256dh key length
-                auth: btoa(`backend-auth-${result.userKey}`).substring(0, 22)    // Proper base64 auth key length
+                auth: btoa(`backend-auth-${result.userKey}`).substring(0, 22) // Proper base64 auth key length
               },
               // Add required PushSubscription methods
               toJSON: () => ({
@@ -1961,7 +1960,7 @@ function Browser() {
                 return true
               }
             }
-            
+
             console.log('[WebView] ✅ Using backend userKey for subscription:', result.userKey)
           } else {
             console.log('[WebView] ❌ Failed to get backend subscription: Permission not granted')
@@ -1990,49 +1989,54 @@ function Browser() {
             console.log('[WebView Debug] 📤 Sending subscription response to webview')
             console.log('[WebView Debug] 📤 Subscription to send:', subscription)
             console.log('[WebView Debug] ⏰ Executing delayed push subscription response injection')
-            console.log('[WebView Debug] 📨 Message event dispatched with data:', JSON.stringify({
-              type: 'PUSH_SUBSCRIPTION_RESPONSE',
-              subscription: subscription
-            }))
+            console.log(
+              '[WebView Debug] 📨 Message event dispatched with data:',
+              JSON.stringify({
+                type: 'PUSH_SUBSCRIPTION_RESPONSE',
+                subscription: subscription
+              })
+            )
             // Create a clean subscription object for the website
-            const cleanSubscription = subscription ? {
-              endpoint: subscription.endpoint,
-              keys: subscription.keys
-            } : null
-            
+            const cleanSubscription = subscription
+              ? {
+                  endpoint: subscription.endpoint,
+                  keys: subscription.keys
+                }
+              : null
+
             const responseJson = JSON.stringify({
               type: 'PUSH_SUBSCRIPTION_RESPONSE',
               subscription: cleanSubscription
             })
-            
+
             // Add comprehensive debugging for message passing
             console.log('[WebView Debug] About to inject JavaScript response:', {
               hasSubscription: cleanSubscription !== null,
               responseJson: responseJson,
               userKey: result.userKey
             })
-            
+
             // 🎯 FINAL WORKING SOLUTION: Use delayed injection (setTimeout) - PROVEN TO WORK!
             console.log('[WebView Debug] 🎯 Using delayed injection - the proven working solution!')
             console.log('[WebView Debug] 📤 Subscription to send:', cleanSubscription)
-            
+
             // CRITICAL: Use setTimeout delay because immediate injection fails after async backend calls
             setTimeout(() => {
               console.log('[WebView Debug] ⏰ Executing delayed push subscription response injection')
-              
+
               // 🔍 CRITICAL DEBUG: Check WebView ref availability
-              console.log('[WebView Debug] 🔍 Debugging WebView ref:');
-              console.log('[WebView Debug] 🔍 - activeTab exists:', !!activeTab);
-              console.log('[WebView Debug] 🔍 - activeTab.webviewRef exists:', !!activeTab?.webviewRef);
-              console.log('[WebView Debug] 🔍 - activeTab.webviewRef.current exists:', !!activeTab?.webviewRef?.current);
-              console.log('[WebView Debug] 🔍 - WebView ref type:', typeof activeTab?.webviewRef?.current);
-              
+              console.log('[WebView Debug] 🔍 Debugging WebView ref:')
+              console.log('[WebView Debug] 🔍 - activeTab exists:', !!activeTab)
+              console.log('[WebView Debug] 🔍 - activeTab.webviewRef exists:', !!activeTab?.webviewRef)
+              console.log('[WebView Debug] 🔍 - activeTab.webviewRef.current exists:', !!activeTab?.webviewRef?.current)
+              console.log('[WebView Debug] 🔍 - WebView ref type:', typeof activeTab?.webviewRef?.current)
+
               if (activeTab?.webviewRef?.current) {
-                console.log('[WebView Debug] ✅ WebView ref is available - attempting injection');
-                
+                console.log('[WebView Debug] ✅ WebView ref is available - attempting injection')
+
                 try {
                   // Create the injection JavaScript as a string with proper escaping
-                  const subscriptionJson = JSON.stringify(cleanSubscription);
+                  const subscriptionJson = JSON.stringify(cleanSubscription)
                   const injectionJS = `
                   console.log('[WebView Response] 🚀 Push subscription response injection (delayed)');
                   console.log('[WebView Response] 📦 Subscription data:', ${JSON.stringify(subscriptionJson)});
@@ -2144,20 +2148,20 @@ function Browser() {
                   }
                   
                   console.log('[WebView Response] ✅ Push subscription response handling completed!');
-                  `;
-                  
-                  const injectionResult = activeTab.webviewRef.current.injectJavaScript(injectionJS);
-                  
-                  console.log('[WebView Debug] ✅ JavaScript injection completed successfully');
+                  `
+
+                  const injectionResult = activeTab.webviewRef.current.injectJavaScript(injectionJS)
+
+                  console.log('[WebView Debug] ✅ JavaScript injection completed successfully')
                 } catch (injectionError) {
-                  console.error('[WebView Debug] ❌ JavaScript injection failed:', injectionError);
-                  console.error('[WebView Debug] ❌ This is why no logs are showing from injected JavaScript!');
+                  console.error('[WebView Debug] ❌ JavaScript injection failed:', injectionError)
+                  console.error('[WebView Debug] ❌ This is why no logs are showing from injected JavaScript!')
                 }
               } else {
-                console.error('[WebView Debug] ❌ WebView ref unavailable during delayed injection');
-                console.error('[WebView Debug] ❌ activeTab:', !!activeTab);
-                console.error('[WebView Debug] ❌ webviewRef:', !!activeTab?.webviewRef);
-                console.error('[WebView Debug] ❌ current:', !!activeTab?.webviewRef?.current);
+                console.error('[WebView Debug] ❌ WebView ref unavailable during delayed injection')
+                console.error('[WebView Debug] ❌ activeTab:', !!activeTab)
+                console.error('[WebView Debug] ❌ webviewRef:', !!activeTab?.webviewRef)
+                console.error('[WebView Debug] ❌ current:', !!activeTab?.webviewRef?.current)
               }
             }, 100)
           }

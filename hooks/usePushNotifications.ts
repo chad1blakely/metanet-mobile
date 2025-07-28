@@ -85,7 +85,7 @@ export const usePushNotifications = () => {
   const requestPermission = async (origin: string): Promise<{ granted: boolean; userKey?: string }> => {
     try {
       console.log('🔔 Requesting push permission for origin:', origin)
-      
+
       // Check if backend service is available
       const isHealthy = await notificationBackend.healthCheck()
       if (!isHealthy) {
@@ -93,11 +93,11 @@ export const usePushNotifications = () => {
         return { granted: false }
       }
 
-      console.log("🔍 Registering for origin:", origin)
+      console.log('🔍 Registering for origin:', origin)
 
       // Register subscription with backend - userId should be the origin
       const result = await notificationBackend.registerPushSubscription(origin, origin)
-      
+
       if (result.success && result.userKey) {
         console.log('✅ Push permission granted, userKey:', result.userKey)
         return { granted: true, userKey: result.userKey }
@@ -127,7 +127,7 @@ export const usePushNotifications = () => {
         },
         trigger: null // Show immediately
       })
-      
+
       console.log('📱 Local notification scheduled successfully')
     } catch (error) {
       console.error('❌ Error showing local notification:', error)
@@ -159,13 +159,13 @@ export const usePushNotifications = () => {
     // Core functions
     requestPermission,
     showLocalNotification,
-    
+
     // Notification queue management
     pendingNotifications,
     addPendingNotification,
     clearPendingNotifications,
     getPendingNotificationsForOrigin,
-    
+
     // Backend service access
     notificationBackend
   }
