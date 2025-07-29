@@ -213,6 +213,32 @@ function Browser() {
   /* ---------------------------------- tabs --------------------------------- */
   const activeTab = tabStore.activeTab // Should never be null due to TabStore guarantees
 
+  // Debug effect to track activeTab changes
+  useEffect(() => {
+    console.log('🔍 [Browser] activeTab changed:', {
+      activeTab: activeTab ? {
+        id: activeTab.id,
+        url: activeTab.url,
+        title: activeTab.title
+      } : null,
+      activeTabId: tabStore.activeTabId,
+      tabsCount: tabStore.tabs.length,
+      renderCounter
+    })
+  }, [activeTab, tabStore.activeTabId, tabStore.tabs.length])
+
+  // Initialize tab store on component mount
+  useEffect(() => {
+    console.log('🚀 [Browser] Initializing tab store...')
+    tabStore.initializeTabs().then(() => {
+      console.log('✅ [Browser] Tab store initialized')
+      setTabsInitialized(true)
+    }).catch((error) => {
+      console.error('❌ [Browser] Tab store initialization failed:', error)
+      setTabsInitialized(true) // Set to true anyway to prevent infinite loading
+    })
+  }, [])
+
   /* ----------------------------- push notifications ------------------------- */
   const { requestPermission, showLocalNotification, pendingNotifications } = usePushNotifications()
 
@@ -651,6 +677,7 @@ function Browser() {
   const starDrawerAnim = useRef(new Animated.Value(0)).current
   const [isDesktopView, setIsDesktopView] = useState(false)
   const [isToggleDesktopCooldown, setIsToggleDesktopCooldown] = useState(false)
+  const [tabsInitialized, setTabsInitialized] = useState(false)
 
   // Orientation handling
   const [orientation, setOrientation] = useState('portrait')
@@ -3183,7 +3210,14 @@ function Browser() {
         >
           <StatusBar style={isDark ? 'light' : 'dark'} hidden={isFullscreen} />
 
-          {activeTab?.url === kNEW_TAB_URL ? (
+          {!tabsInitialized ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={{ marginTop: 16, color: colors.textSecondary }}>
+                Initializing browser...
+              </Text>
+            </View>
+          ) : activeTab?.url === kNEW_TAB_URL ? (
             <TouchableWithoutFeedback onPress={dismissKeyboard}>
               <View style={{ flex: 1 }}>
                 <RecommendedApps
@@ -3336,7 +3370,7 @@ function Browser() {
               )}
             </View>
           ) : null}
-          {!isFullscreen && (
+          {!isFullscreen && tabsInitialized && (
             <View
               onLayout={e => setAddressBarHeight(e.nativeEvent.layout.height)}
               style={[
@@ -3459,7 +3493,7 @@ function Browser() {
             </View>
           )}
 
-          {!isFullscreen && showTabsView && (
+          {!isFullscreen && showTabsView && tabsInitialized && (
             <TabsView onDismiss={() => setShowTabsView(false)} setAddressText={setAddressText} colors={colors} />
           )}
 
@@ -3490,7 +3524,7 @@ function Browser() {
               </Animated.View>
             </View>
           )}
-          {!isFullscreen && showBottomBar && activeTab && (
+          {!isFullscreen && showBottomBar && tabsInitialized && (
             <BottomToolbar
               activeTab={activeTab}
               colors={colors}
@@ -3729,6 +3763,11 @@ const TabsViewBase = ({
 
     setIsCreatingTab(true)
 
+    // Create new tab immediately to ensure UI state is updated
+    tabStore.newTab()
+    // Reset address text to new tab URL
+    setAddressText(kNEW_TAB_URL)
+    
     // Scale animation
     Animated.sequence([
       Animated.timing(newTabScale, {
@@ -3742,10 +3781,7 @@ const TabsViewBase = ({
         useNativeDriver: true
       })
     ]).start(() => {
-      // Create new tab and dismiss view after animation
-      tabStore.newTab()
-      // Reset address text to new tab URL
-      setAddressText(kNEW_TAB_URL)
+      // Dismiss view after animation
       onDismiss()
 
       // Reset cooldown after a short delay
@@ -4030,7 +4066,7 @@ const BottomToolbar = ({
   toggleStarDrawer,
   setShowTabsView
 }: {
-  activeTab: Tab
+  activeTab: Tab | null
   colors: any
   styles: any
   navBack: () => void
@@ -4041,6 +4077,44 @@ const BottomToolbar = ({
 }) => {
   const handleStarPress = useCallback(() => toggleStarDrawer(true), [toggleStarDrawer])
   const handleTabsPress = useCallback(() => setShowTabsView(true), [setShowTabsView])
+
+  // Early return if no active tab
+  if (!activeTab) {
+    console.log('🔧 BottomToolbar: No activeTab, rendering minimal toolbar')
+    return (
+      <View
+        style={[
+          styles.bottomBar,
+          {
+            backgroundColor: colors.inputBackground,
+            paddingBottom: 0
+          }
+        ]}
+      >
+        <View style={styles.toolbarSection}>
+          <TouchableOpacity style={[styles.toolbarButton, { opacity: 0.3 }]} disabled={true}>
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.toolbarButton, { opacity: 0.3 }]} disabled={true}>
+            <Ionicons name="arrow-forward" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.toolbarCenter}>
+          <TouchableOpacity style={styles.toolbarButton} disabled={true}>
+            <Ionicons name="share-outline" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.toolbarSection}>
+          <TouchableOpacity style={styles.toolbarButton} onPress={handleStarPress}>
+            <Ionicons name="star-outline" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toolbarButton} onPress={handleTabsPress}>
+            <Ionicons name="copy-outline" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    )
+  }
 
   // Debug: Log activeTab state on every render
   useEffect(() => {
