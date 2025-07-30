@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react'
-import { Stack } from 'expo-router'
+import React, { useEffect } from 'react'
+import { Stack, SplashScreen } from 'expo-router'
+import { observer } from 'mobx-react-lite'
+import { View, ActivityIndicator } from 'react-native'
 import { UserContextProvider, NativeHandlers } from '../context/UserContext'
 import packageJson from '../package.json'
 import { WalletContextProvider } from '@/context/WalletContext'
@@ -19,6 +21,7 @@ import { initializeFirebase } from '@/utils/firebase'
 import { LanguageProvider } from '@/utils/translations'
 import { BrowserModeProvider } from '@/context/BrowserModeContext'
 import Web3BenefitsModalHandler from '@/components/Web3BenefitsModalHandler'
+import tabStore from '@/stores/TabStore'
 import '@/utils/translations'
 
 const nativeHandlers: NativeHandlers = {
@@ -54,24 +57,30 @@ Notifications.setNotificationHandler({
   })
 })
 
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync()
+
 // Deep link handler component
 function DeepLinkHandler() {
   useDeepLinking()
   return null
 }
 
-export default function RootLayout() {
-  const [configLoaded, setConfigLoaded] = useState(false)
+function RootLayout() {
   useEffect(() => {
-    const initialize = async () => {
+    const initializeApp = async () => {
       await initializeFirebase()
-      setConfigLoaded(true)
+      await tabStore.initializeTabs()
+      SplashScreen.hideAsync()
     }
-    initialize()
+    initializeApp()
   }, [])
-
-  if (!configLoaded) {
-    return null
+  if (!tabStore.isInitialized) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    )
   }
 
   return (
@@ -93,7 +102,7 @@ export default function RootLayout() {
                   <CertificateAccessModal />
                   <SpendingAuthorizationModal />
                   <Stack
-                    screenOptions={{
+                     screenOptions={{
                       animation: 'slide_from_right',
                       headerShown: false
                     }}
@@ -118,3 +127,5 @@ export default function RootLayout() {
     </LanguageProvider>
   )
 }
+
+export default observer(RootLayout)

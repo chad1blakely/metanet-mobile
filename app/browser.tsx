@@ -216,11 +216,13 @@ function Browser() {
   // Debug effect to track activeTab changes
   useEffect(() => {
     console.log('🔍 [Browser] activeTab changed:', {
-      activeTab: activeTab ? {
-        id: activeTab.id,
-        url: activeTab.url,
-        title: activeTab.title
-      } : null,
+      activeTab: activeTab
+        ? {
+            id: activeTab.id,
+            url: activeTab.url,
+            title: activeTab.title
+          }
+        : null,
       activeTabId: tabStore.activeTabId,
       tabsCount: tabStore.tabs.length,
       renderCounter
@@ -230,13 +232,16 @@ function Browser() {
   // Initialize tab store on component mount
   useEffect(() => {
     console.log('🚀 [Browser] Initializing tab store...')
-    tabStore.initializeTabs().then(() => {
-      console.log('✅ [Browser] Tab store initialized')
-      setTabsInitialized(true)
-    }).catch((error) => {
-      console.error('❌ [Browser] Tab store initialization failed:', error)
-      setTabsInitialized(true) // Set to true anyway to prevent infinite loading
-    })
+    tabStore
+      .initializeTabs()
+      .then(() => {
+        console.log('✅ [Browser] Tab store initialized')
+        setTabsInitialized(true)
+      })
+      .catch(error => {
+        console.error('❌ [Browser] Tab store initialization failed:', error)
+        setTabsInitialized(true) // Set to true anyway to prevent infinite loading
+      })
   }, [])
 
   /* ----------------------------- push notifications ------------------------- */
@@ -3213,9 +3218,7 @@ function Browser() {
           {!tabsInitialized ? (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={{ marginTop: 16, color: colors.textSecondary }}>
-                Initializing browser...
-              </Text>
+              <Text style={{ marginTop: 16, color: colors.textSecondary }}>Initializing browser...</Text>
             </View>
           ) : activeTab?.url === kNEW_TAB_URL ? (
             <TouchableWithoutFeedback onPress={dismissKeyboard}>
@@ -3767,7 +3770,7 @@ const TabsViewBase = ({
     tabStore.newTab()
     // Reset address text to new tab URL
     setAddressText(kNEW_TAB_URL)
-    
+
     // Scale animation
     Animated.sequence([
       Animated.timing(newTabScale, {
@@ -3789,7 +3792,7 @@ const TabsViewBase = ({
         setIsCreatingTab(false)
       }, 300)
     })
-  }, [newTabScale, onDismiss, setAddressText, isCreatingTab])
+  }, [newTabScale, onDismiss, setAddressText, isCreatingTab, tabStore])
 
   const renderItem = ({ item }: { item: Tab }) => {
     const renderRightActions = (

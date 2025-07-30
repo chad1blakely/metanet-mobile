@@ -58,79 +58,41 @@ export class TabStore {
   }
 
   newTab = (initialUrl?: string | null) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
     // Ensure initialUrl is never null or undefined
     const safeInitialUrl = initialUrl || kNEW_TAB_URL
     const newTab = this.createTab(safeInitialUrl)
+    this.tabs.push(newTab)
+    this.activeTabId = newTab.id
 
-    console.log('🆕 [TabStore] Creating new tab:', {
-      newTabId: newTab.id,
-      url: safeInitialUrl,
-      currentActiveTabId: this.activeTabId,
-      currentTabsCount: this.tabs.length
-    })
+    // Initialize navigation history for new tab - only add valid URLs to history
+    if (
+      safeInitialUrl &&
+      safeInitialUrl !== kNEW_TAB_URL &&
+      safeInitialUrl !== 'about:blank' &&
+      isValidUrl(safeInitialUrl)
+    ) {
+      this.tabNavigationHistories[newTab.id] = [safeInitialUrl]
+      this.tabHistoryIndexes[newTab.id] = 0
+    } else {
+      // For new tabs with blank URLs, start with empty history
+      this.tabNavigationHistories[newTab.id] = []
+      this.tabHistoryIndexes[newTab.id] = -1
+    }
 
-    // Wrap state changes in runInAction to ensure proper MobX reactivity
-    runInAction(() => {
-      this.tabs.push(newTab)
-      this.activeTabId = newTab.id
-
-      console.log('🆕 [TabStore] Tab state updated:', {
-        newActiveTabId: this.activeTabId,
-        tabsCount: this.tabs.length,
-        tabIds: this.tabs.map(t => t.id)
-      })
-
-      // Initialize navigation history for new tab - only add valid URLs to history
-      if (
-        safeInitialUrl &&
-        safeInitialUrl !== kNEW_TAB_URL &&
-        safeInitialUrl !== 'about:blank' &&
-        isValidUrl(safeInitialUrl)
-      ) {
-        this.tabNavigationHistories[newTab.id] = [safeInitialUrl]
-        this.tabHistoryIndexes[newTab.id] = 0
-      } else {
-        // For new tabs with blank URLs, start with empty history
-        this.tabNavigationHistories[newTab.id] = []
-        this.tabHistoryIndexes[newTab.id] = -1
-      }
-    })
-
-    // Apply layout animation after state changes are complete
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
     this.saveTabs()
-
-    console.log('🆕 [TabStore] New tab creation completed')
   }
 
   get activeTab(): Tab | null {
     const tab = this.tabs.find(t => t.id === this.activeTabId)
-
-    // Debug logging
-    if (!tab && this.tabs.length > 0) {
-      console.log('⚠️ [TabStore] No tab found for activeTabId, fixing:', {
-        activeTabId: this.activeTabId,
-        availableTabIds: this.tabs.map(t => t.id),
-        tabsCount: this.tabs.length
-      })
-    }
 
     // If no tab found but we have tabs, fix the activeTabId to point to the first tab
     if (!tab && this.tabs.length > 0) {
       // Use runInAction for state changes inside computed properties (getters)
       runInAction(() => {
         this.activeTabId = this.tabs[0].id
-        console.log('🔧 [TabStore] Fixed activeTabId to:', this.tabs[0].id)
       })
       return this.tabs[0]
-    }
-
-    // Log when returning null
-    if (!tab) {
-      console.log('❌ [TabStore] activeTab returning null:', {
-        activeTabId: this.activeTabId,
-        tabsCount: this.tabs.length
-      })
     }
 
     // REMOVED: The logic to create a new tab here was causing the race condition.
