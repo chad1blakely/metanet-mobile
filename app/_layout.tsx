@@ -93,7 +93,6 @@ function RootLayout() {
                 <ThemeProvider>
                   <DeepLinkHandler />
                   <Web3BenefitsModalHandler />
-                  {/* <TranslationTester /> */}
                   <DefaultBrowserPrompt />
                   <PasswordHandler />
                   <RecoveryKeySaver />
