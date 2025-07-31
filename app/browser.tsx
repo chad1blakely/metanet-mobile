@@ -48,6 +48,7 @@ import { WalletInterface } from '@bsv/sdk'
 import { RecommendedApps } from '@/components/RecommendedApps'
 import { useLocalStorage } from '@/context/LocalStorageProvider'
 import Balance from '@/components/Balance'
+import BrowserWebView from '@/components/BrowserWebView'
 import type { Bookmark, HistoryEntry, Tab } from '@/shared/types/browser'
 import { HistoryList } from '@/components/HistoryList'
 import { isValidUrl } from '@/utils/generalHelpers'
@@ -82,6 +83,7 @@ import { logWithTimestamp } from '@/utils/logging'
 import PermissionsScreen from '@/components/PermissionsScreen'
 import PermissionModal from '@/components/PermissionModal'
 import * as Notifications from 'expo-notifications'
+import { toJS } from 'mobx'
 
 /* -------------------------------------------------------------------------- */
 /*                                   CONSTS                                   */
@@ -1106,11 +1108,36 @@ function Browser() {
 
   const navReloadOrStop = useCallback(() => {
     const currentTab = tabStore.activeTab
-    if (!currentTab) return
+    console.log('🔄 [NAV_RELOAD_STOP] Reload/Stop action requested:', {
+      hasCurrentTab: !!currentTab,
+      tabId: currentTab?.id,
+      isLoading: currentTab?.isLoading,
+      url: currentTab?.url,
+      hasWebViewRef: !!currentTab?.webviewRef,
+      webViewRefCurrent: !!currentTab?.webviewRef?.current,
+      timestamp: new Date().toISOString()
+    })
+
+    if (!currentTab) {
+      console.warn('🔄 [NAV_RELOAD_STOP] No current tab found')
+      return
+    }
+
+    // Log detailed ref information
+    console.log('🔄 [NAV_RELOAD_STOP] WebView ref details:', {
+      tabId: currentTab.id,
+      webviewRef: {
+        exists: !!currentTab.webviewRef,
+        current: !!currentTab.webviewRef?.current,
+        type: typeof currentTab.webviewRef?.current
+      }
+    })
 
     if (currentTab.isLoading) {
+      console.log('🔄 [NAV_RELOAD_STOP] Stopping loading...')
       return currentTab.webviewRef?.current?.stopLoading()
     } else {
+      console.log('🔄 [NAV_RELOAD_STOP] Reloading page...')
       return currentTab.webviewRef?.current?.reload()
     }
   }, [])
@@ -3243,17 +3270,9 @@ function Browser() {
                 />
               </View>
             </TouchableWithoutFeedback>
-          ) : activeTab ? (
+          ) : tabsInitialized && tabStore.tabs.length > 0 ? (
             <View style={{ flex: 1 }} {...responderProps}>
-              <WebView
-                ref={activeTab?.webviewRef}
-                source={{
-                  uri: activeTab?.url || kNEW_TAB_URL,
-                  headers: {
-                    'Accept-Language': getAcceptLanguageHeader()
-                  }
-                }}
-                originWhitelist={['https://*', 'http://*']}
+              <BrowserWebView
                 onMessage={handleMessage}
                 onNavigationStateChange={(navState: WebViewNavigation) => {
                   // Check if URL actually changed to avoid unnecessary updates
@@ -3357,6 +3376,9 @@ function Browser() {
                 allowsBackForwardNavigationGestures
                 containerStyle={{ backgroundColor: colors.background }}
                 style={{ flex: 1 }}
+                headers={{
+                  'Accept-Language': getAcceptLanguageHeader()
+                }}
               />
               {showScanner && (
                 <UniversalScanner
@@ -3748,6 +3770,7 @@ const TabsViewBase = ({
   setAddressText: (text: string) => void
   colors: any
 }) => {
+  const [listReady, setListReady] = useState(true)
   const { t } = useTranslation()
   // Use the imported tabStore directly
   const screen = Dimensions.get('window')
@@ -3762,7 +3785,7 @@ const TabsViewBase = ({
 
   const handleNewTabPress = useCallback(() => {
     // Prevent multiple rapid presses
-    if (isCreatingTab) return
+    if (isCreatingTab || !listReady) return
 
     setIsCreatingTab(true)
 
@@ -3792,7 +3815,7 @@ const TabsViewBase = ({
         setIsCreatingTab(false)
       }, 300)
     })
-  }, [newTabScale, onDismiss, setAddressText, isCreatingTab, tabStore])
+  }, [newTabScale, onDismiss, setAddressText, isCreatingTab, tabStore, listReady])
 
   const renderItem = ({ item }: { item: Tab }) => {
     const renderRightActions = (
@@ -3897,10 +3920,13 @@ const TabsViewBase = ({
       </TouchableWithoutFeedback>
 
       <FlatList
-        data={tabStore.tabs.slice()}
+        data={toJS(tabStore.tabs)}
         renderItem={renderItem}
         keyExtractor={t => String(t.id)}
         numColumns={2}
+        onContentSizeChange={() => { setTimeout(() => {
+          setIsCreatingTab(false)
+        }, 300); setListReady(true)} }
         contentContainerStyle={{
           padding: 12,
           paddingTop: 32,
