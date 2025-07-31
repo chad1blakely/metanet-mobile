@@ -1,3 +1,8 @@
+// Crypto polyfills - must be imported first
+import 'react-native-quick-crypto'
+import { Buffer } from 'buffer'
+global.Buffer = Buffer
+
 import React, { useEffect } from 'react'
 import { Stack, SplashScreen } from 'expo-router'
 import { observer } from 'mobx-react-lite'
