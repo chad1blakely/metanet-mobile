@@ -101,7 +101,7 @@ function RootLayout() {
                   <CertificateAccessModal />
                   <SpendingAuthorizationModal />
                   <Stack
-                     screenOptions={{
+                    screenOptions={{
                       animation: 'slide_from_right',
                       headerShown: false
                     }}

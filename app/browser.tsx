@@ -3476,7 +3476,7 @@ function Browser() {
                 />
               </TouchableOpacity>
 
-              {!addressFocused  && (
+              {!addressFocused && (
                 <TouchableOpacity onPress={toggleDesktopView} style={styles.addressBarIcon}>
                   <Ionicons
                     name={isDesktopView ? 'phone-portrait' : 'desktop'}
@@ -3930,18 +3930,18 @@ const TabsViewBase = ({
         initialNumToRender={6}
         windowSize={10}
         getItemLayout={(data, index) => ({
-          length: ITEM_H + (screen.width * 0.08), // ITEM_H + margin
-          offset: (ITEM_H + (screen.width * 0.08)) * Math.floor(index / 2),
-          index,
+          length: ITEM_H + screen.width * 0.08, // ITEM_H + margin
+          offset: (ITEM_H + screen.width * 0.08) * Math.floor(index / 2),
+          index
         })}
-        onContentSizeChange={() => { 
+        onContentSizeChange={() => {
           // Clean up the side effects that might interfere with rendering
           requestAnimationFrame(() => {
-            setListReady(true);
+            setListReady(true)
             setTimeout(() => {
-              setIsCreatingTab(false);
-            }, 300);
-          });
+              setIsCreatingTab(false)
+            }, 300)
+          })
         }}
         extraData={tabStore.activeTabId}
         contentContainerStyle={{

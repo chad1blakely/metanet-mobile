@@ -25,7 +25,7 @@ export class TabStore {
 
   async initializeTabs() {
     if (this.isInitialized) return
-    
+
     await this.loadTabs()
 
     // This logic is now safe because loadTabs has completed.
@@ -57,7 +57,7 @@ export class TabStore {
   newTab = (initialUrl?: string | null) => {
     console.log(`newTab() called with initialUrl=${initialUrl}`)
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
-    
+
     // Ensure initialUrl is never null or undefined
     const safeInitialUrl = initialUrl || kNEW_TAB_URL
     const newTab = this.createTab(safeInitialUrl)
@@ -99,7 +99,7 @@ export class TabStore {
   setActiveTab(id: number) {
     const targetTab = this.tabs.find(t => t.id === id)
     console.log(`setActiveTab(): Switching from tab ${this.activeTabId} to tab ${id}`)
-    
+
     if (targetTab && targetTab.id !== this.activeTabId) {
       console.log(`setActiveTab(): Setting activeTabId=${id}`)
       this.activeTabId = id
@@ -124,12 +124,12 @@ export class TabStore {
           patch.url = kNEW_TAB_URL
         }
       }
-      
+
       // Log significant updates for debugging
       if ('url' in patch && patch.url !== tab.url) {
         console.log(`updateTab(): Updating tab ${id} URL from "${tab.url}" to "${patch.url}"`)
       }
-      
+
       Object.assign(tab, patch)
       this.saveTabs()
     } else {
@@ -141,9 +141,11 @@ export class TabStore {
     const tab = this.tabs.find(t => t.id === tabId)
     const history = this.tabNavigationHistories[tabId]
     const currentIndex = this.tabHistoryIndexes[tabId]
-    
-    console.log(`🔙 [TAB_STORE] goBack(): tabId=${tabId}, currentIndex=${currentIndex}, history=${history?.length} items`)
-    
+
+    console.log(
+      `🔙 [TAB_STORE] goBack(): tabId=${tabId}, currentIndex=${currentIndex}, history=${history?.length} items`
+    )
+
     // Log detailed webView ref information
     console.log(`🔙 [TAB_STORE] WebView ref details for tab ${tabId}:`, {
       hasTab: !!tab,
@@ -180,12 +182,16 @@ export class TabStore {
       } else {
         console.warn(`🔙 [TAB_STORE] Cannot navigate - WebView ref not available`)
       }
-      
-      console.log(`🔙 [TAB_STORE] Updated tab ${tabId} to URL: ${url}, canGoBack: ${tab.canGoBack}, canGoForward: ${tab.canGoForward}`)
-      
+
+      console.log(
+        `🔙 [TAB_STORE] Updated tab ${tabId} to URL: ${url}, canGoBack: ${tab.canGoBack}, canGoForward: ${tab.canGoForward}`
+      )
+
       this.saveTabs()
     } else {
-      console.log(`🔙 [TAB_STORE] Cannot go back: tab=${!!tab}, history=${history?.length}, currentIndex=${currentIndex}`)
+      console.log(
+        `🔙 [TAB_STORE] Cannot go back: tab=${!!tab}, history=${history?.length}, currentIndex=${currentIndex}`
+      )
     }
   }
 
@@ -193,7 +199,7 @@ export class TabStore {
     const tab = this.tabs.find(t => t.id === tabId)
     const history = this.tabNavigationHistories[tabId]
     const currentIndex = this.tabHistoryIndexes[tabId]
-    
+
     console.log(`goForward(): tabId=${tabId}, currentIndex=${currentIndex}, history=${history?.length} items`)
 
     if (tab && history && currentIndex < history.length - 1) {
@@ -216,9 +222,11 @@ export class TabStore {
       if (tab.webviewRef.current) {
         tab.webviewRef.current.injectJavaScript(`window.location.href = "${url}";`)
       }
-      
-      console.log(`🔜 Updated tab ${tabId} to URL: ${url}, canGoBack: ${tab.canGoBack}, canGoForward: ${tab.canGoForward}`)
-      
+
+      console.log(
+        `🔜 Updated tab ${tabId} to URL: ${url}, canGoBack: ${tab.canGoBack}, canGoForward: ${tab.canGoForward}`
+      )
+
       this.saveTabs()
     } else {
       console.log(`Cannot go forward: tab=${!!tab}, history=${history?.length}, currentIndex=${currentIndex}`)
@@ -246,15 +254,15 @@ export class TabStore {
       const newActiveTab = this.tabs[Math.max(tabIndex - 1, 0)]
       this.setActiveTab(newActiveTab.id)
     }
-    
+
     this.saveTabs()
   }
 
   handleNavigationStateChange(tabId: number, navState: WebViewNavigation) {
     const tab = this.tabs.find(t => t.id === tabId)
-    
+
     console.log(`handleNavigationStateChange(): tabId=${tabId}, url=${navState.url}, loading=${navState.loading}`)
-    
+
     if (!tab) {
       console.log(`handleNavigationStateChange(): Tab ${tabId} not found, skipping`)
       return
@@ -262,28 +270,28 @@ export class TabStore {
 
     // Always update loading state
     tab.isLoading = navState.loading
-    
+
     // Only update URL and history when navigation completes and we have a valid URL
     const currentUrl = navState.url || kNEW_TAB_URL
-    
+
     if (!navState.loading && currentUrl && isValidUrl(currentUrl)) {
       // Only update if URL actually changed
       if (currentUrl !== tab.url) {
         console.log(`handleNavigationStateChange(): URL changed for tab ${tabId} from "${tab.url}" to "${currentUrl}"`)
         tab.url = currentUrl
-        
+
         // Update title
         if (navState.title && navState.title.trim() !== '') {
           tab.title = navState.title
         } else {
           tab.title = currentUrl
         }
-        
+
         // Only add to history if it's not about:blank and it's a real navigation
         if (currentUrl !== 'about:blank' && currentUrl !== kNEW_TAB_URL) {
           const history = this.tabNavigationHistories[tabId] || []
           const currentIndex = this.tabHistoryIndexes[tabId] ?? -1
-          
+
           // Check if this URL is already at our current position
           if (currentUrl !== history[currentIndex]) {
             console.log(`📝 Adding new URL to history: ${currentUrl}`)
@@ -292,20 +300,22 @@ export class TabStore {
             newHistory.push(currentUrl)
             this.tabNavigationHistories[tabId] = newHistory
             this.tabHistoryIndexes[tabId] = newHistory.length - 1
-            
+
             // Update navigation capabilities based on our history
             const newIndex = this.tabHistoryIndexes[tabId]
             tab.canGoBack = newIndex > 0
             tab.canGoForward = false // Always false since we just added the latest
-            
-            console.log(`🧭 Navigation updated: canGoBack=${tab.canGoBack}, canGoForward=${tab.canGoForward}, historyIndex=${newIndex}/${newHistory.length - 1}`)
+
+            console.log(
+              `🧭 Navigation updated: canGoBack=${tab.canGoBack}, canGoForward=${tab.canGoForward}, historyIndex=${newIndex}/${newHistory.length - 1}`
+            )
           }
         }
-        
+
         this.saveTabs()
       }
     }
-    
+
     console.log(`handleNavigationStateChange(): Final tab state:`, {
       id: tab.id,
       url: tab.url,
@@ -333,40 +343,39 @@ export class TabStore {
   // Initialize with mock tabs for testing
   initializeWithMockTabs(count: number = 6) {
     console.log(`Initializing with ${count} mock tabs`)
-    
+
     // Clear existing tabs
     this.tabs = []
     this.tabNavigationHistories = {}
     this.tabHistoryIndexes = {}
-    
+
     // Create blank tabs
     for (let i = 0; i < count; i++) {
       const mockTab = this.createTab() // Creates blank tab
       mockTab.title = `Tab ${i + 1}`
       this.tabs.push(mockTab)
-      
+
       // Initialize empty navigation history for blank tabs
       this.tabNavigationHistories[mockTab.id] = []
       this.tabHistoryIndexes[mockTab.id] = -1
     }
-    
+
     // Set first tab as active
     if (this.tabs.length > 0) {
       this.activeTabId = this.tabs[0].id
     }
-    
+
     console.log(`${count} mock tabs created`)
     this.saveTabs()
   }
-  
+
   async saveTabs() {
     if (!this.tabs) this.tabs = [] // Prevent undefined
     const serializableTabs = this.tabs.map(({ webviewRef, ...rest }) => rest)
 
-    await AsyncStorage.setItem('tabs', JSON.stringify(serializableTabs))
-      .catch(() => {
-        // Silent catch for now
-      })
+    await AsyncStorage.setItem('tabs', JSON.stringify(serializableTabs)).catch(() => {
+      // Silent catch for now
+    })
   }
 
   async loadTabs() {
