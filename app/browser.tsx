@@ -3476,7 +3476,7 @@ function Browser() {
                 />
               </TouchableOpacity>
 
-              {!addressFocused && activeTab?.url !== kNEW_TAB_URL && (
+              {!addressFocused  && (
                 <TouchableOpacity onPress={toggleDesktopView} style={styles.addressBarIcon}>
                   <Ionicons
                     name={isDesktopView ? 'phone-portrait' : 'desktop'}
@@ -3920,13 +3920,30 @@ const TabsViewBase = ({
       </TouchableWithoutFeedback>
 
       <FlatList
-        data={toJS(tabStore.tabs)}
+        data={tabStore.tabs.slice()}
         renderItem={renderItem}
-        keyExtractor={t => String(t.id)}
+        keyExtractor={(item, index) => `tab-${item.id}-${index}`}
         numColumns={2}
-        onContentSizeChange={() => { setTimeout(() => {
-          setIsCreatingTab(false)
-        }, 300); setListReady(true)} }
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={6}
+        updateCellsBatchingPeriod={50}
+        initialNumToRender={6}
+        windowSize={10}
+        getItemLayout={(data, index) => ({
+          length: ITEM_H + (screen.width * 0.08), // ITEM_H + margin
+          offset: (ITEM_H + (screen.width * 0.08)) * Math.floor(index / 2),
+          index,
+        })}
+        onContentSizeChange={() => { 
+          // Clean up the side effects that might interfere with rendering
+          requestAnimationFrame(() => {
+            setListReady(true);
+            setTimeout(() => {
+              setIsCreatingTab(false);
+            }, 300);
+          });
+        }}
+        extraData={tabStore.activeTabId}
         contentContainerStyle={{
           padding: 12,
           paddingTop: 32,
