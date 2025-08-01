@@ -3770,7 +3770,6 @@ const TabsViewBase = ({
   setAddressText: (text: string) => void
   colors: any
 }) => {
-  const [listReady, setListReady] = useState(true)
   const { t } = useTranslation()
   // Use the imported tabStore directly
   const screen = Dimensions.get('window')
@@ -3780,14 +3779,16 @@ const TabsViewBase = ({
 
   // Animation for new tab button
   const newTabScale = useRef(new Animated.Value(1)).current
-  // Add cooldown state
-  const [isCreatingTab, setIsCreatingTab] = useState(false)
+  // Add cooldown state with useRef to avoid stale closures
+  const isCreatingTab = useRef(false)
+  const [isCreatingTabState, setIsCreatingTabState] = useState(false)
 
   const handleNewTabPress = useCallback(() => {
     // Prevent multiple rapid presses
-    if (isCreatingTab || !listReady) return
+    if (isCreatingTab.current) return
 
-    setIsCreatingTab(true)
+    isCreatingTab.current = true
+    setIsCreatingTabState(true)
 
     // Create new tab immediately to ensure UI state is updated
     tabStore.newTab()
@@ -3810,12 +3811,11 @@ const TabsViewBase = ({
       // Dismiss view after animation
       onDismiss()
 
-      // Reset cooldown after a short delay
-      setTimeout(() => {
-        setIsCreatingTab(false)
-      }, 300)
+      // Reset cooldown immediately and update state
+      isCreatingTab.current = false
+      setIsCreatingTabState(false)
     })
-  }, [newTabScale, onDismiss, setAddressText, isCreatingTab, tabStore, listReady])
+  }, [newTabScale, onDismiss, setAddressText, tabStore])
 
   const renderItem = ({ item }: { item: Tab }) => {
     const renderRightActions = (
@@ -3935,13 +3935,8 @@ const TabsViewBase = ({
           index
         })}
         onContentSizeChange={() => {
-          // Clean up the side effects that might interfere with rendering
-          requestAnimationFrame(() => {
-            setListReady(true)
-            setTimeout(() => {
-              setIsCreatingTab(false)
-            }, 300)
-          })
+          // Simple callback without complex state management
+          // Remove the problematic nested state updates that can cause race conditions
         }}
         extraData={tabStore.activeTabId}
         contentContainerStyle={{
@@ -3974,7 +3969,6 @@ const TabsViewBase = ({
             ]}
             onPress={handleNewTabPress}
             activeOpacity={0.7}
-            disabled={isCreatingTab}
           >
             <Text style={[styles.newTabIcon, { color: colors.background }]}>＋</Text>
           </TouchableOpacity>
