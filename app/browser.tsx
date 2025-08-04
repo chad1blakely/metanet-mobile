@@ -3930,23 +3930,20 @@ const TabsViewBase = ({
         initialNumToRender={6}
         windowSize={10}
         getItemLayout={(data, index) => ({
-          length: ITEM_H + screen.width * 0.08, // ITEM_H + margin
+          length: ITEM_H + screen.width * 0.08,
           offset: (ITEM_H + screen.width * 0.08) * Math.floor(index / 2),
           index
         })}
         onContentSizeChange={() => {
-          // Simple callback without complex state management
-          // Remove the problematic nested state updates that can cause race conditions
         }}
         extraData={tabStore.activeTabId}
         contentContainerStyle={{
           padding: 12,
           paddingTop: 32,
-          paddingBottom: 20 // Reduced padding since we have a bar now
+          paddingBottom: 20 
         }}
       />
 
-      {/* New styled footer bar */}
       <View
         style={[
           styles.tabsViewFooterBar,
@@ -3960,15 +3957,15 @@ const TabsViewBase = ({
         <Animated.View style={{ transform: [{ scale: newTabScale }] }}>
           <TouchableOpacity
             style={[
-              styles.newTabBtn,
-              {
-                backgroundColor: colors.primary,
-                // Add visual feedback when disabled
-                ...(isCreatingTab && { opacity: 0.6 })
-              }
-            ]}
-            onPress={handleNewTabPress}
-            activeOpacity={0.7}
+                styles.newTabBtn,
+                {
+                  backgroundColor: colors.primary,
+                  opacity: isCreatingTabState ? 0.5 : 1  // Add this line
+                }
+              ]}
+              onPress={handleNewTabPress}
+              activeOpacity={1}
+              disabled={isCreatingTabState} 
           >
             <Text style={[styles.newTabIcon, { color: colors.background }]}>＋</Text>
           </TouchableOpacity>
@@ -3984,18 +3981,15 @@ const TabsViewBase = ({
             }
           ]}
           onPress={() => {
-            // Add haptic feedback if available
             if (Platform.OS === 'ios') {
-              // iOS haptic feedback
               try {
                 const { ImpactFeedbackGenerator } = require('expo-haptics')
                 ImpactFeedbackGenerator.impactAsync(ImpactFeedbackGenerator.ImpactFeedbackStyle.Medium)
               } catch (e) {
-                // Fallback for expo-haptics not available
               }
             }
             tabStore.clearAllTabs()
-            onDismiss() // Close the tabs view after clearing
+            onDismiss()
           }}
           activeOpacity={0.7}
         >
