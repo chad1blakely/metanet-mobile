@@ -3959,7 +3959,7 @@ const TabsViewBase = ({
               styles.newTabBtn,
               {
                 backgroundColor: colors.primary,
-                opacity: isCreatingTabState ? 0.5 : 1 // Add this line
+                opacity: isCreatingTabState ? 0.5 : 1 
               }
             ]}
             onPress={handleNewTabPress}
