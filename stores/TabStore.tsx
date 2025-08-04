@@ -249,7 +249,6 @@ export class TabStore {
     delete this.tabHistoryIndexes[id]
     this.tabs.splice(tabIndex, 1)
 
-
     if (this.tabs.length === 0) {
       this.newTab()
       return

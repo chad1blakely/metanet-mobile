@@ -11,7 +11,7 @@ import { useLocalStorage } from '@/context/LocalStorageProvider'
 import { Utils } from '@bsv/sdk'
 import { remoteConfig, analytics } from '@/utils/firebase'
 import { useTranslation } from 'react-i18next'
-import { useBrowserMode } from '@/context/BrowserModeContext'            
+import { useBrowserMode } from '@/context/BrowserModeContext'
 
 export default function LoginScreen() {
   // Get theme colors
@@ -24,7 +24,6 @@ export default function LoginScreen() {
   const { showWeb3Benefits, setWeb2Mode } = useBrowserMode()
   const [loading, setLoading] = React.useState(false)
   const [initializing, setInitializing] = useState(true)
-
 
   useEffect(() => {
     // Get the button text from Remote Config
@@ -197,7 +196,6 @@ export default function LoginScreen() {
               </Text>
             </TouchableOpacity>
 
-           
             <Text style={[styles.termsText, { color: colors.textSecondary }]}>{t('terms_privacy_agreement')}</Text>
 
             <TouchableOpacity style={styles.configButton} onPress={handleConfig}>

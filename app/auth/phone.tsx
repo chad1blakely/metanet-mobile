@@ -50,39 +50,41 @@ export default function PhoneScreen() {
 
   // Handle login button press
   const handleContinue = useCallback(async () => {
-  if (!isValidPhoneNumber()) return
+    if (!isValidPhoneNumber()) return
 
-  if (!managers || !managers.walletManager || typeof managers.walletManager.startAuth !== 'function') {
-    console.error('Wallet manager not initialized yet')
-    return
-  }
+    if (!managers || !managers.walletManager || typeof managers.walletManager.startAuth !== 'function') {
+      console.error('Wallet manager not initialized yet')
+      return
+    }
 
-  setLoading(true)
+    setLoading(true)
 
-  try {
-    await managers.walletManager.startAuth({
-      phoneNumber: formattedNumber
-    })
+    try {
+      await managers.walletManager.startAuth({
+        phoneNumber: formattedNumber
+      })
 
-    // Navigate to OTP screen
-    router.push({
-      pathname: '/auth/otp',
-      params: { phoneNumber: formattedNumber }
-    })
-  } catch (error) {
-    console.error('Error sending OTP:', error)
-    // Show error message to user
-  } finally {
-    setLoading(false)
-  }
-}, [managers, formattedNumber])
+      // Navigate to OTP screen
+      router.push({
+        pathname: '/auth/otp',
+        params: { phoneNumber: formattedNumber }
+      })
+    } catch (error) {
+      console.error('Error sending OTP:', error)
+      // Show error message to user
+    } finally {
+      setLoading(false)
+    }
+  }, [managers, formattedNumber])
 
   const canContinue = () => {
-  return isValidPhoneNumber() && 
-         managers && 
-         managers.walletManager && 
-         typeof managers.walletManager.startAuth === 'function'
-}
+    return (
+      isValidPhoneNumber() &&
+      managers &&
+      managers.walletManager &&
+      typeof managers.walletManager.startAuth === 'function'
+    )
+  }
 
   // Handle skip login for web2 mode
   const handleSkipLogin = useCallback(() => {

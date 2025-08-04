@@ -3934,13 +3934,12 @@ const TabsViewBase = ({
           offset: (ITEM_H + screen.width * 0.08) * Math.floor(index / 2),
           index
         })}
-        onContentSizeChange={() => {
-        }}
+        onContentSizeChange={() => {}}
         extraData={tabStore.activeTabId}
         contentContainerStyle={{
           padding: 12,
           paddingTop: 32,
-          paddingBottom: 20 
+          paddingBottom: 20
         }}
       />
 
@@ -3957,15 +3956,15 @@ const TabsViewBase = ({
         <Animated.View style={{ transform: [{ scale: newTabScale }] }}>
           <TouchableOpacity
             style={[
-                styles.newTabBtn,
-                {
-                  backgroundColor: colors.primary,
-                  opacity: isCreatingTabState ? 0.5 : 1  // Add this line
-                }
-              ]}
-              onPress={handleNewTabPress}
-              activeOpacity={1}
-              disabled={isCreatingTabState} 
+              styles.newTabBtn,
+              {
+                backgroundColor: colors.primary,
+                opacity: isCreatingTabState ? 0.5 : 1 // Add this line
+              }
+            ]}
+            onPress={handleNewTabPress}
+            activeOpacity={1}
+            disabled={isCreatingTabState}
           >
             <Text style={[styles.newTabIcon, { color: colors.background }]}>＋</Text>
           </TouchableOpacity>
@@ -3985,8 +3984,7 @@ const TabsViewBase = ({
               try {
                 const { ImpactFeedbackGenerator } = require('expo-haptics')
                 ImpactFeedbackGenerator.impactAsync(ImpactFeedbackGenerator.ImpactFeedbackStyle.Medium)
-              } catch (e) {
-              }
+              } catch (e) {}
             }
             tabStore.clearAllTabs()
             onDismiss()
