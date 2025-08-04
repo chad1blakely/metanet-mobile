@@ -52,10 +52,8 @@ export default function PhoneScreen() {
   const handleContinue = useCallback(async () => {
   if (!isValidPhoneNumber()) return
 
-  // Check if managers and walletManager are available
   if (!managers || !managers.walletManager || typeof managers.walletManager.startAuth !== 'function') {
     console.error('Wallet manager not initialized yet')
-    // You could show a toast/alert here: "Please wait a moment and try again"
     return
   }
 
