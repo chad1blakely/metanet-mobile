@@ -1087,7 +1087,7 @@ function Browser() {
           `
 
           // Navigate to data URL with error content
-          updateActiveTab({ url: `data:text/html,${encodeURIComponent(errorHtml)}` })
+          updateActiveTab({ url: `data:text/html,${encodeURI(errorHtml)}` })
         } finally {
           // Clear loading state
           setUhrpLoading(null)
@@ -1100,7 +1100,7 @@ function Browser() {
     const isProbablyUrl = /^([a-z]+:\/\/|www\.|([A-Za-z0-9\-]+\.)+[A-Za-z]{2,})(\/|$)/i.test(entry)
 
     if (entry === '') entry = kNEW_TAB_URL
-    else if (!isProbablyUrl) entry = kGOOGLE_PREFIX + encodeURIComponent(entry)
+    else if (!isProbablyUrl) entry = kGOOGLE_PREFIX + encodeURI(entry)
     else if (!/^[a-z]+:\/\//i.test(entry)) entry = 'https://' + entry
 
     if (!isValidUrl(entry)) {
@@ -2649,7 +2649,7 @@ function Browser() {
             </body>
           </html>
         `
-          updateActiveTab({ url: `data:text/html,${encodeURIComponent(errorHtml)}` })
+          updateActiveTab({ url: `data:text/html,${encodeURI(errorHtml)}` })
           toggleStarDrawer(false)
         } finally {
           // Clear loading state
@@ -2723,7 +2723,7 @@ function Browser() {
             </body>
           </html>
         `
-          updateActiveTab({ url: `data:text/html,${encodeURIComponent(errorHtml)}` })
+          updateActiveTab({ url: `data:text/html,${encodeURI(errorHtml)}` })
         } finally {
           // Clear loading state
           setUhrpLoading(null)
@@ -3209,7 +3209,7 @@ function Browser() {
                           </html>
                         `
 
-                        updateActiveTab({ url: `data:text/html,${encodeURIComponent(errorHtml)}` })
+                        updateActiveTab({ url: `data:text/html,${encodeURI(errorHtml)}` })
                       }
                     })()
 
@@ -3295,7 +3295,14 @@ function Browser() {
               </View>
             </TouchableWithoutFeedback>
           ) : tabsInitialized && tabStore.tabs.length > 0 ? (
-            <View style={{ flex: 1 }} {...responderProps}>
+            <View 
+              style={{ 
+                flex: 1,
+                // Disable pointer events when tabs view is showing
+                pointerEvents: showTabsView ? 'none' : 'auto'
+              }} 
+              {...responderProps}
+            >
               <BrowserWebView
                 onMessage={handleMessage}
                 onNavigationStateChange={(navState: WebViewNavigation) => {
@@ -3366,7 +3373,7 @@ function Browser() {
                           </html>
                         `
 
-                        updateActiveTab({ url: `data:text/html,${encodeURIComponent(errorHtml)}` })
+                        updateActiveTab({ url: `data:text/html,${encodeURI(errorHtml)}` })
                       }
                     })()
 
@@ -3399,7 +3406,11 @@ function Browser() {
                 allowsProtectedMedia={true}
                 allowsBackForwardNavigationGestures
                 containerStyle={{ backgroundColor: colors.background }}
-                style={{ flex: 1 }}
+                style={{ 
+                  flex: 1,
+                  // Disable pointer events when tabs view is showing
+                  pointerEvents: showTabsView ? 'none' : 'auto'
+                }}
                 headers={{
                   'Accept-Language': getAcceptLanguageHeader()
                 }}

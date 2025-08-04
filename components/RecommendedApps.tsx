@@ -198,7 +198,7 @@ export const RecommendedApps = ({
             </body>
           </html>
         `
-          setStartingUrl(`data:text/html,${encodeURIComponent(errorHtml)}`)
+          setStartingUrl(`data:text/html,${encodeURI(errorHtml)}`)
         }
       } else {
         // Normal HTTP/HTTPS URL, use regular navigation
