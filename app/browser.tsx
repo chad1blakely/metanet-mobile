@@ -770,9 +770,12 @@ function Browser() {
       setKeyboardVisible(false)
       setKeyboardHeight(0)
       
-      // Add delay to prevent rapid focus/blur conflicts
+      // When keyboard hides, also unfocus the address bar if it's focused
       setTimeout(() => {
-        if (!addressEditing.current && addressInputRef.current?.isFocused()) {
+        if (addressEditing.current || addressInputRef.current?.isFocused()) {
+          addressEditing.current = false
+          setAddressFocused(false)
+          setAddressSuggestions([])
           addressInputRef.current?.blur()
         }
       }, 50)
@@ -3302,6 +3305,12 @@ function Browser() {
                 pointerEvents: showTabsView ? 'none' : 'auto'
               }} 
               {...responderProps}
+              onTouchStart={() => {
+                // If address bar is focused and user taps on WebView, unfocus it
+                if (addressFocused) {
+                  dismissKeyboard()
+                }
+              }}
             >
               <BrowserWebView
                 onMessage={handleMessage}
@@ -3457,22 +3466,30 @@ function Browser() {
 
               <TextInput
                 ref={addressInputRef}
-                editable
+                editable={!showTabsView} // Disable editing when tabs view is showing
                 value={addressDisplay === 'new-tab-page' ? '' : addressDisplay}
                 onChangeText={onChangeAddressText}
                 onFocus={() => {
+                  // Only set focus state, no automatic behaviors
                   addressEditing.current = true
                   setAddressFocused(true)
-                  // Set the text to empty if it's the new tab URL
+                  
+                  // Clear text only if it's a new tab
                   if (activeTab?.url === kNEW_TAB_URL) {
                     setAddressText('')
                   }
+                  
+                  // Select all text after a short delay, but only if still focused
                   setTimeout(() => {
-                    const textToSelect = activeTab?.url === kNEW_TAB_URL ? '' : addressText
-                    addressInputRef.current?.setNativeProps({
-                      selection: { start: 0, end: textToSelect.length }
-                    })
-                  }, 0)
+                    if (addressEditing.current && addressInputRef.current?.isFocused()) {
+                      const textToSelect = activeTab?.url === kNEW_TAB_URL ? '' : addressText
+                      if (textToSelect) {
+                        addressInputRef.current.setNativeProps({
+                          selection: { start: 0, end: textToSelect.length }
+                        })
+                      }
+                    }
+                  }, 100)
                 }}
                 onBlur={() => {
                   // Add slight delay to prevent conflicts with other focus events
