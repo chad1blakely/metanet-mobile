@@ -237,12 +237,18 @@ export class TabStore {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
     const tabIndex = this.tabs.findIndex(t => t.id === id)
     if (tabIndex === -1) return
+    const tab = this.tabs[tabIndex]
+    if (tab.webviewRef?.current) {
+      // Add cleanup before removing tab
+      tab.webviewRef.current.stopLoading()
+      tab.webviewRef.current.clearCache?.(true)
+      tab.webviewRef.current.clearHistory?.()
+    }
 
-    this.tabs.splice(tabIndex, 1)
-
-    // Clear navigation history for closed tab
     delete this.tabNavigationHistories[id]
     delete this.tabHistoryIndexes[id]
+    this.tabs.splice(tabIndex, 1)
+
 
     if (this.tabs.length === 0) {
       this.newTab()
