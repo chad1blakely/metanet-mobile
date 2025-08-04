@@ -769,13 +769,28 @@ function Browser() {
     const hideSub = Keyboard.addListener(hideEvent, () => {
       setKeyboardVisible(false)
       setKeyboardHeight(0)
-      if (addressInputRef.current) {
-      }
-      addressInputRef.current?.blur()
+      
+      // Add delay to prevent rapid focus/blur conflicts
+      setTimeout(() => {
+        if (!addressEditing.current && addressInputRef.current?.isFocused()) {
+          addressInputRef.current?.blur()
+        }
+      }, 50)
     })
     return () => {
       showSub.remove()
       hideSub.remove()
+    }
+  }, [])
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      // Clean up any pending operations
+      addressEditing.current = false
+      setAddressFocused(false)
+      setAddressSuggestions([])
+      Keyboard.dismiss()
     }
   }, [])
 
@@ -1029,7 +1044,14 @@ function Browser() {
       timestamp: new Date().toISOString(),
       activeTabId: tabStore.activeTabId
     })
-
+    
+    // Clean up keyboard and focus state immediately
+    addressEditing.current = false
+    setAddressFocused(false)
+    setAddressSuggestions([])
+    addressInputRef.current?.blur()
+    Keyboard.dismiss()
+    
     let entry = addressText.trim()
 
     // Check if this is a UHRP URL first
@@ -1086,7 +1108,6 @@ function Browser() {
     }
 
     updateActiveTab({ url: entry })
-    addressEditing.current = false
   }, [addressText, updateActiveTab])
 
   /* -------------------------------------------------------------------------- */
@@ -1200,6 +1221,9 @@ function Browser() {
   }, [activeTab])
 
   const dismissKeyboard = useCallback(() => {
+    addressEditing.current = false
+    setAddressFocused(false)
+    setAddressSuggestions([])
     addressInputRef.current?.blur()
     Keyboard.dismiss()
   }, [])
@@ -3440,13 +3464,16 @@ function Browser() {
                   }, 0)
                 }}
                 onBlur={() => {
-                  addressEditing.current = false
-                  setAddressFocused(false)
-                  setAddressSuggestions([])
-                  // Reset to the actual URL when losing focus
-                  if (!addressEditing.current) {
-                    setAddressText(activeTab?.url ? activeTab.url : kNEW_TAB_URL)
-                  }
+                  // Add slight delay to prevent conflicts with other focus events
+                  setTimeout(() => {
+                    addressEditing.current = false
+                    setAddressFocused(false)
+                    setAddressSuggestions([])
+                    // Reset to the actual URL when losing focus
+                    if (!addressEditing.current && activeTab) {
+                      setAddressText(activeTab.url || kNEW_TAB_URL)
+                    }
+                  }, 50)
                 }}
                 onSubmitEditing={onAddressSubmit}
                 autoCapitalize="none"
@@ -3494,16 +3521,16 @@ function Browser() {
                 <TouchableOpacity
                   key={`suggestion-${i}-${entry.url}`}
                   onPress={() => {
-                    // Dismiss keyboard and hide suggestions first
-                    addressInputRef.current?.blur()
-                    Keyboard.dismiss()
+                    // Immediately clean up keyboard and focus state
+                    addressEditing.current = false
                     setAddressFocused(false)
                     setAddressSuggestions([])
+                    addressInputRef.current?.blur()
+                    Keyboard.dismiss()
 
                     // Then load the page
                     setAddressText(entry.url)
                     updateActiveTab({ url: entry.url })
-                    addressEditing.current = false
                   }}
                   style={styles.suggestionItem}
                 >
