@@ -22,7 +22,8 @@ import {
   ScrollView,
   Modal as RNModal,
   BackHandler,
-  ActivityIndicator
+  ActivityIndicator,
+  LayoutAnimation
 } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { getPermissionScript } from '../utils/permissionScript'
@@ -3898,13 +3899,17 @@ const TabsViewBase = ({
 
     return (
       <Swipeable
-        renderRightActions={renderRightActions}
-        renderLeftActions={renderLeftActions}
-        onSwipeableRightOpen={() => tabStore.closeTab(item.id)}
-        onSwipeableLeftOpen={() => tabStore.closeTab(item.id)}
-        friction={2}
-        rightThreshold={40}
-        leftThreshold={40}
+      renderRightActions={renderRightActions}
+      renderLeftActions={renderLeftActions}
+      friction={1}
+      leftThreshold={10}
+      rightThreshold={10}
+      overshootLeft={false}
+      overshootRight={false}
+      onSwipeableWillOpen={() => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        tabStore.closeTab(item.id);
+      }}
       >
         <Pressable
           style={[
