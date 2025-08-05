@@ -3851,27 +3851,9 @@ const TabsViewBase = ({
     tabStore.newTab()
     // Reset address text to new tab URL
     setAddressText(kNEW_TAB_URL)
-    onDismiss()
-
-    // Scale animation
-    Animated.sequence([
-      Animated.timing(newTabScale, {
-        toValue: 0.85,
-        duration: 100,
-        useNativeDriver: true
-      }),
-      Animated.timing(newTabScale, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true
-      })
-    ]).start(() => {
-      // Dismiss view after animation
-
-      // Reset cooldown immediately and update state
-      isCreatingTab.current = false
+          isCreatingTab.current = false
       setIsCreatingTabState(false)
-    })
+      onDismiss()
   }, [newTabScale, onDismiss, setAddressText, tabStore])
 
   const renderItem = ({ item }: { item: Tab }) => {
