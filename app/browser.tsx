@@ -3841,20 +3841,19 @@ const TabsViewBase = ({
   const [isCreatingTabState, setIsCreatingTabState] = useState(false)
 
   const handleNewTabPress = useCallback(() => {
-    // Prevent multiple rapid presses
     if (isCreatingTab.current) return
 
     isCreatingTab.current = true
     setIsCreatingTabState(true)
-
-    // Create new tab immediately to ensure UI state is updated
-    tabStore.newTab()
-    // Reset address text to new tab URL
+    onDismiss()
     setAddressText(kNEW_TAB_URL)
-          isCreatingTab.current = false
+    setTimeout(() => {
+      tabStore.newTab()
+      // reset guard so next tap works once the view remounts
+      isCreatingTab.current = false
       setIsCreatingTabState(false)
-      onDismiss()
-  }, [newTabScale, onDismiss, setAddressText, tabStore])
+    }, 100)    // <-- tweak this delay as needed
+  }, [onDismiss, setAddressText])
 
   const renderItem = ({ item }: { item: Tab }) => {
     const renderRightActions = (
@@ -3987,22 +3986,13 @@ const TabsViewBase = ({
           }
         ]}
       >
-        <Animated.View style={{ transform: [{ scale: newTabScale }] }}>
-          <TouchableOpacity
-            style={[
-              styles.newTabBtn,
-              {
-                backgroundColor: colors.primary,
-                opacity: isCreatingTabState ? 0.5 : 1 
-              }
-            ]}
-            onPress={handleNewTabPress}
-            activeOpacity={1}
-            disabled={isCreatingTabState}
-          >
-            <Text style={[styles.newTabIcon, { color: colors.background }]}>＋</Text>
-          </TouchableOpacity>
-        </Animated.View>
+        <TouchableOpacity
+          onPress={handleNewTabPress}
+          disabled={isCreatingTabState}
+          style={[ styles.newTabBtn, { opacity: isCreatingTabState ? 0.5 : 1, backgroundColor: colors.primary } ]}
+        >
+          <Text style={[styles.newTabIcon, { color: colors.background }]}>＋</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={[
