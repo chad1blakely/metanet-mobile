@@ -23,7 +23,8 @@ import {
   Modal as RNModal,
   BackHandler,
   ActivityIndicator,
-  LayoutAnimation
+  LayoutAnimation,
+  InteractionManager
 } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { getPermissionScript } from '../utils/permissionScript'
@@ -3850,6 +3851,7 @@ const TabsViewBase = ({
     tabStore.newTab()
     // Reset address text to new tab URL
     setAddressText(kNEW_TAB_URL)
+    onDismiss()
 
     // Scale animation
     Animated.sequence([
@@ -3865,7 +3867,6 @@ const TabsViewBase = ({
       })
     ]).start(() => {
       // Dismiss view after animation
-      onDismiss()
 
       // Reset cooldown immediately and update state
       isCreatingTab.current = false
@@ -3878,22 +3879,12 @@ const TabsViewBase = ({
       progress: Animated.AnimatedInterpolation<number>,
       dragX: Animated.AnimatedInterpolation<number>
     ) => {
-      const trans: Animated.AnimatedInterpolation<number> = dragX.interpolate({
-        inputRange: [-101, 0],
-        outputRange: [0, 1],
-        extrapolate: 'clamp'
-      })
       return <Animated.View style={[styles.swipeDelete]}></Animated.View>
     }
     const renderLeftActions = (
       progress: Animated.AnimatedInterpolation<number>,
       dragX: Animated.AnimatedInterpolation<number>
     ) => {
-      const trans: Animated.AnimatedInterpolation<number> = dragX.interpolate({
-        inputRange: [0, 101],
-        outputRange: [1, 0],
-        extrapolate: 'clamp'
-      })
       return <Animated.View style={[styles.swipeDelete]}></Animated.View>
     }
 
@@ -3907,8 +3898,9 @@ const TabsViewBase = ({
       overshootLeft={false}
       overshootRight={false}
       onSwipeableWillOpen={() => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        tabStore.closeTab(item.id);
+        InteractionManager.runAfterInteractions(() => {
+          tabStore.closeTab(item.id)
+        })
       }}
       >
         <Pressable
@@ -3982,9 +3974,9 @@ const TabsViewBase = ({
       <FlatList
         data={tabStore.tabs.slice()}
         renderItem={renderItem}
-        keyExtractor={(item, index) => `tab-${item.id}-${index}`}
+        keyExtractor={item => item.id.toString()}
         numColumns={2}
-        removeClippedSubviews={true}
+        removeClippedSubviews={false}
         maxToRenderPerBatch={6}
         updateCellsBatchingPeriod={50}
         initialNumToRender={6}
