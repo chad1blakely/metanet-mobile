@@ -82,6 +82,8 @@ import UniversalScanner, { ScannerHandle } from '@/components/UniversalScanner'
 import { logWithTimestamp } from '@/utils/logging'
 import PermissionsScreen from '@/components/PermissionsScreen'
 import PermissionModal from '@/components/PermissionModal'
+import HomescreenShortcut from '@/components/HomescreenShortcut'
+import Shortcuts from '@rn-bridge/react-native-shortcuts'
 import * as Notifications from 'expo-notifications'
 import { toJS } from 'mobx'
 
@@ -220,10 +222,10 @@ function Browser() {
     console.log('🔍 [Browser] activeTab changed:', {
       activeTab: activeTab
         ? {
-            id: activeTab.id,
-            url: activeTab.url,
-            title: activeTab.title
-          }
+          id: activeTab.id,
+          url: activeTab.url,
+          title: activeTab.title
+        }
         : null,
       activeTabId: tabStore.activeTabId,
       tabsCount: tabStore.tabs.length,
@@ -273,10 +275,10 @@ function Browser() {
                 const event = new Event('push');
                 event.data = {
                   json: () => (${JSON.stringify({
-                    title: notification.title,
-                    body: notification.body,
-                    data: notification.data
-                  })})
+            title: notification.title,
+            body: notification.body,
+            data: notification.data
+          })})
                 };
                 window.dispatchEvent(event);
               }
@@ -312,7 +314,7 @@ function Browser() {
 
     return () => {
       // Clean up callback on unmount
-      setWebViewMessageCallback(() => {})
+      setWebViewMessageCallback(() => { })
     }
   }, [forwardNotificationToWebView])
 
@@ -672,6 +674,9 @@ function Browser() {
   const [pendingDomain, setPendingDomain] = useState<string | null>(null)
   const [pendingCallback, setPendingCallback] = useState<((granted: boolean) => void) | null>(null)
 
+  // Add to Home Screen modal state
+  const [showShortcutModal, setShowShortcutModal] = useState(false)
+
   const [showInfoDrawer, setShowInfoDrawer] = useState(false)
   const [infoDrawerRoute, setInfoDrawerRoute] = useState<
     'root' | 'identity' | 'settings' | 'security' | 'trust' | 'permissions'
@@ -884,6 +889,71 @@ function Browser() {
     return () => clearTimeout(timer)
   }, [])
 
+  // Shortcut launch handling
+  useEffect(() => {
+    const decodeUrlFromShortcutId = (shortcutId: string): string | null => {
+      try {
+        if (shortcutId.startsWith('metanet_')) {
+          const encodedUrl = shortcutId.replace('metanet_', '')
+          console.log('📱 [Shortcut] Encoded URL from ID:', encodedUrl)
+          let base64Url = encodedUrl
+            .replace(/-/g, '+')
+            .replace(/_/g, '/')
+          
+          while (base64Url.length % 4) {
+            base64Url += '='
+          }
+          const decodedUrl = Buffer.from(base64Url, 'base64').toString('utf-8')
+          return isValidUrl(decodedUrl) ? decodedUrl : null
+        }
+      } catch (error) {
+        console.error('Error decoding URL from shortcut ID:', error)
+      }
+      return null
+    }
+
+    const navigateToShortcutUrl = (url: string) => {
+      console.log('📱 [Shortcut] Navigating to URL:', url)
+      updateActiveTab({ url })
+      setAddressText(url)
+    }
+
+    const handleShortcutLaunch = async () => {
+      try {
+        // Check if app was launched from a shortcut
+        const initialShortcutId = await Shortcuts.getInitialShortcutId()
+        if (initialShortcutId) {
+          console.log('📱 [Shortcut] App launched from shortcut ID:', initialShortcutId)
+          const url = decodeUrlFromShortcutId(initialShortcutId)
+          if (url) {
+            navigateToShortcutUrl(url)
+          }
+        }
+      } catch (error) {
+        console.error('Error handling initial shortcut:', error)
+      }
+    }
+
+    const handleShortcutUsed = (shortcutId: string) => {
+      console.log('📱 [Shortcut] Shortcut used:', shortcutId)
+      const url = decodeUrlFromShortcutId(shortcutId)
+      console.log('📱 [Shortcut] Decoded URL:', url)
+      if (url) {
+        navigateToShortcutUrl(url)
+      }
+    }
+
+    // Handle app launch from shortcut
+    handleShortcutLaunch()
+
+    // Listen for shortcut usage while app is running
+    const subscription = Shortcuts.addOnShortcutUsedListener(handleShortcutUsed)
+
+    return () => {
+      subscription?.remove?.()
+    }
+  }, [])
+
   // Manifest checking useEffect
   useEffect(() => {
     if (!activeTab) return
@@ -1037,22 +1107,22 @@ function Browser() {
       // Set loading state
       setUhrpLoading(entry)
 
-      // Handle UHRP URL directly in the browser
-      ;(async () => {
-        try {
-          const resolvedContent = await uhrpHandler.resolveUHRPUrl(entry)
+        // Handle UHRP URL directly in the browser
+        ; (async () => {
+          try {
+            const resolvedContent = await uhrpHandler.resolveUHRPUrl(entry)
 
-          // Navigate to the resolved HTTP URL
-          if (resolvedContent.resolvedUrl) {
-            // Update the address bar to show the original UHRP URL
-            setAddressText(entry)
+            // Navigate to the resolved HTTP URL
+            if (resolvedContent.resolvedUrl) {
+              // Update the address bar to show the original UHRP URL
+              setAddressText(entry)
 
-            // Navigate to the resolved URL using the same method as normal navigation
-            updateActiveTab({ url: resolvedContent.resolvedUrl })
-          }
-        } catch (error: any) {
-          // Show error in WebView
-          const errorHtml = `
+              // Navigate to the resolved URL using the same method as normal navigation
+              updateActiveTab({ url: resolvedContent.resolvedUrl })
+            }
+          } catch (error: any) {
+            // Show error in WebView
+            const errorHtml = `
             <html>
               <head><title>UHRP Error</title></head>
               <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
@@ -1064,13 +1134,13 @@ function Browser() {
             </html>
           `
 
-          // Navigate to data URL with error content
-          updateActiveTab({ url: `data:text/html,${encodeURIComponent(errorHtml)}` })
-        } finally {
-          // Clear loading state
-          setUhrpLoading(null)
-        }
-      })()
+            // Navigate to data URL with error content
+            updateActiveTab({ url: `data:text/html,${encodeURI(errorHtml)}` })
+          } finally {
+            // Clear loading state
+            setUhrpLoading(null)
+          }
+        })()
 
       return // Exit early for UHRP URLs
     }
@@ -1078,7 +1148,7 @@ function Browser() {
     const isProbablyUrl = /^([a-z]+:\/\/|www\.|([A-Za-z0-9\-]+\.)+[A-Za-z]{2,})(\/|$)/i.test(entry)
 
     if (entry === '') entry = kNEW_TAB_URL
-    else if (!isProbablyUrl) entry = kGOOGLE_PREFIX + encodeURIComponent(entry)
+    else if (!isProbablyUrl) entry = kGOOGLE_PREFIX + encodeURI(entry)
     else if (!/^[a-z]+:\/\//i.test(entry)) entry = 'https://' + entry
 
     if (!isValidUrl(entry)) {
@@ -1207,9 +1277,9 @@ function Browser() {
   const responderProps =
     addressFocused && keyboardVisible
       ? {
-          onStartShouldSetResponder: () => true,
-          onResponderRelease: dismissKeyboard
-        }
+        onStartShouldSetResponder: () => true,
+        onResponderRelease: dismissKeyboard
+      }
       : {}
 
   /* -------------------------------------------------------------------------- */
@@ -2058,9 +2128,9 @@ function Browser() {
             // Create a clean subscription object for the website
             const cleanSubscription = subscription
               ? {
-                  endpoint: subscription.endpoint,
-                  keys: subscription.keys
-                }
+                endpoint: subscription.endpoint,
+                keys: subscription.keys
+              }
               : null
 
             const responseJson = JSON.stringify({
@@ -2426,7 +2496,7 @@ function Browser() {
           title: navState.title || navState.url,
           url: navState.url,
           timestamp: Date.now()
-        }).catch(() => {})
+        }).catch(() => { })
       } else if (navState.loading) {
         console.log('⏳ [NAV_STATE_CHANGE] Page is still loading...')
       }
@@ -2452,15 +2522,10 @@ function Browser() {
     }
   }, [])
   const addToHomeScreen = useCallback(async () => {
-    try {
-      if (Platform.OS === 'android') {
-      } else {
-        await Linking.openURL('prefs:root=Safari')
-      }
-    } catch (e) {
-      console.warn('Add to homescreen failed', e)
+    if (activeTab && activeTab.url && activeTab.url !== kNEW_TAB_URL && isValidUrl(activeTab.url)) {
+      setShowShortcutModal(true)
     }
-  }, [])
+  }, [activeTab])
 
   /* -------------------------------------------------------------------------- */
   /*                           STAR (BOOKMARK+HISTORY)                          */
@@ -2625,7 +2690,7 @@ function Browser() {
             </body>
           </html>
         `
-          updateActiveTab({ url: `data:text/html,${encodeURIComponent(errorHtml)}` })
+          updateActiveTab({ url: `data:text/html,${encodeURI(errorHtml)}` })
           toggleStarDrawer(false)
         } finally {
           // Clear loading state
@@ -2699,7 +2764,7 @@ function Browser() {
             </body>
           </html>
         `
-          updateActiveTab({ url: `data:text/html,${encodeURIComponent(errorHtml)}` })
+          updateActiveTab({ url: `data:text/html,${encodeURI(errorHtml)}` })
         } finally {
           // Clear loading state
           setUhrpLoading(null)
@@ -3115,6 +3180,15 @@ function Browser() {
           setPendingCallback(null)
         }}
       />
+
+      {/* Add to Home Screen Modal */}
+      <HomescreenShortcut
+        visible={showShortcutModal}
+        onClose={() => setShowShortcutModal(false)}
+        currentUrl={activeTab?.url || ''}
+        currentTitle={activeTab?.title}
+      />
+
       {/* Fullscreen Overlay for both iOS and Android */}
       {isFullscreen && (
         <RNModal
@@ -3163,7 +3237,7 @@ function Browser() {
                   // Check if this is a UHRP URL
                   if (uhrpHandler.isUHRPUrl(request.url)) {
                     // Resolve UHRP URL to HTTP URL and navigate to it
-                    ;(async () => {
+                    ; (async () => {
                       try {
                         const resolvedContent = await uhrpHandler.resolveUHRPUrl(request.url)
 
@@ -3185,7 +3259,7 @@ function Browser() {
                           </html>
                         `
 
-                        updateActiveTab({ url: `data:text/html,${encodeURIComponent(errorHtml)}` })
+                        updateActiveTab({ url: `data:text/html,${encodeURI(errorHtml)}` })
                       }
                     })()
 
@@ -3320,7 +3394,7 @@ function Browser() {
                   // Check if this is a UHRP URL
                   if (uhrpHandler.isUHRPUrl(request.url)) {
                     // Resolve UHRP URL to HTTP URL and navigate to it
-                    ;(async () => {
+                    ; (async () => {
                       try {
                         const resolvedContent = await uhrpHandler.resolveUHRPUrl(request.url)
 
@@ -3342,7 +3416,7 @@ function Browser() {
                           </html>
                         `
 
-                        updateActiveTab({ url: `data:text/html,${encodeURIComponent(errorHtml)}` })
+                        updateActiveTab({ url: `data:text/html,${encodeURI(errorHtml)}` })
                       }
                     })()
 
@@ -3940,7 +4014,7 @@ const TabsViewBase = ({
         contentContainerStyle={{
           padding: 12,
           paddingTop: 32,
-          paddingBottom: 20 
+          paddingBottom: 20
         }}
       />
 
@@ -3957,15 +4031,15 @@ const TabsViewBase = ({
         <Animated.View style={{ transform: [{ scale: newTabScale }] }}>
           <TouchableOpacity
             style={[
-                styles.newTabBtn,
-                {
-                  backgroundColor: colors.primary,
-                  opacity: isCreatingTabState ? 0.5 : 1  // Add this line
-                }
-              ]}
-              onPress={handleNewTabPress}
-              activeOpacity={1}
-              disabled={isCreatingTabState} 
+              styles.newTabBtn,
+              {
+                backgroundColor: colors.primary,
+                opacity: isCreatingTabState ? 0.5 : 1  // Add this line
+              }
+            ]}
+            onPress={handleNewTabPress}
+            activeOpacity={1}
+            disabled={isCreatingTabState}
           >
             <Text style={[styles.newTabIcon, { color: colors.background }]}>＋</Text>
           </TouchableOpacity>

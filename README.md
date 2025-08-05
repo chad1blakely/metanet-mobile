@@ -17,10 +17,11 @@ Clone the repo, then:
 
 ```
 npm i
-npm run configure
+npm run prebuild
 ```
 
 ```
+npx expo run
 npm run start
 ```
 
